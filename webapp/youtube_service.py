@@ -5,16 +5,16 @@ import re
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-TOKENS_DIR = BASE_DIR / "tokens"
+TOKENS_DIR = BASE_DIR / "stories" / "tokens"
 MERGED_DIR = "merged"
 SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube.readonly",
 ]
 
-TOKENS_DIR.mkdir(exist_ok=True)
+TOKENS_DIR.mkdir(parents=True, exist_ok=True)
 CONFIG_KEY = "youtube_channels"
-DEFAULT_TOKEN = BASE_DIR / "token.json"
+DEFAULT_TOKEN = BASE_DIR / "stories" / "tokens" / "token.json"
 
 
 def _safe_channel_id(channel_id):
