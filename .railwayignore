@@ -1,0 +1,13 @@
+*.mp4
+*.mkv
+*.webm
+*.part
+__pycache__/
+.cache/
+.replit
+.DS_Store
+*.pyc
+
+# Do NOT ignore stories and tokens directories completely because we need the folders to exist, 
+# but Railway will mount them as volumes.
+# If you don't use volumes, the files inside will be wiped every reboot.
