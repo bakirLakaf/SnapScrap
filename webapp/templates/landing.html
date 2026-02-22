@@ -30,22 +30,29 @@
             <div class="logo">
                 <i class="fa-solid fa-bolt text-gradient"></i> SnapScrap
             </div>
-            <div id="google_translate_element" style="margin: 0 15px;"></div>
-            <script type="text/javascript">
-                function googleTranslateElementInit() {
-                    new google.translate.TranslateElement({ pageLanguage: 'ar', includedLanguages: 'ar,en,fr', layout: google.translate.TranslateElement.InlineLayout.SIMPLE }, 'google_translate_element');
-                }
-            </script>
-            <script type="text/javascript"
-                src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+            <div class="lang-switcher"
+                style="margin: 0 15px; position: relative; display: flex; align-items: center; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 15px;">
+                <i class="fa-solid fa-globe" style="margin-left: 8px; color: #fff;"></i>
+                <select onchange="window.location.href='/set_lang/'+this.value"
+                    style="background: transparent; color: #fff; border: none; font-weight: bold; outline: none; appearance: none; -webkit-appearance: none; cursor: pointer;">
+                    <option style="color: #000;" value="ar" {% if current_lang=='ar' %}selected{% endif %}>العربية
+                    </option>
+                    <option style="color: #000;" value="en" {% if current_lang=='en' %}selected{% endif %}>English
+                    </option>
+                    <option style="color: #000;" value="fr" {% if current_lang=='fr' %}selected{% endif %}>Français
+                    </option>
+                </select>
+                <i class="fa-solid fa-chevron-down"
+                    style="font-size: 0.7em; margin-right: 8px; color: #fff; pointer-events: none;"></i>
+            </div>
             <div class="nav-links">
-                <a href="#features">المميزات</a>
-                <a href="#pricing">الباقات</a>
+                <a href="#features">{{ _('features') }}</a>
+                <a href="#pricing">{{ _('pricing') }}</a>
                 {% if current_user.is_authenticated %}
-                <a href="{{ url_for('dashboard') }}" class="btn-primary">لوحة التحكم</a>
+                <a href="{{ url_for('dashboard') }}" class="btn-primary">{{ _('dashboard') }}</a>
                 {% else %}
-                <a href="{{ url_for('login') }}" class="btn-ghost">تسجيل الدخول</a>
-                <a href="{{ url_for('register') }}" class="btn-primary">ابدأ مجاناً</a>
+                <a href="{{ url_for('login') }}" class="btn-ghost">{{ _('login') }}</a>
+                <a href="{{ url_for('register') }}" class="btn-primary">{{ _('register') }}</a>
                 {% endif %}
             </div>
         </div>
@@ -55,31 +62,83 @@
     <section class="hero" id="home">
         <div class="hero-content">
             <h1 class="hero-title">
-                حوّل <span class="text-gradient hover-trigger">سناب شات</span> إلى إمبراطورية <br>
-                <span class="text-gradient">يوتيوب شورتس</span> أوتوماتيكياً
+                {{ _('hero_title_1') }} <span class="text-gradient hover-trigger">{{ _('hero_title_2') }}</span> {{
+                _('hero_title_3') }} <br>
+                <span class="text-gradient">{{ _('hero_title_4') }}</span> {{ _('hero_title_5') }}
             </h1>
             <p class="hero-subtitle">
-                لا مزيد من العمل اليدوي. نقوم بتحميل ستوريات المشاهير، دمجها كفيديوهات قصيرة Shorts، ونشرها على قنواتك
-                في يوتيوب بشكل يومي ومنتظم.
+                {{ _('hero_sub') }}
             </p>
-            <div class="hero-actions">
-                <a href="{{ url_for('register') }}" class="btn-primary btn-large">
-                    أنشئ حسابك الآن <i class="fa-solid fa-arrow-left mt-1"></i>
-                </a>
+            <div class="hero-actions"
+                style="margin-top: 2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                <div class="download-box"
+                    style="display: flex; width: 100%; max-width: 500px; gap: 10px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 50px; border: 1px solid rgba(255,252,0,0.3);">
+                    <input type="text" id="singleStoryUrl" placeholder="{{ _('download_placeholder') }}"
+                        style="flex: 1; min-width: 0; background: transparent; border: none; color: #fff; padding: 0 15px; font-size: 1rem; outline: none;">
+                    <button onclick="downloadSingleStory()" class="btn-primary"
+                        style="border-radius: 40px; padding: 10px 25px; white-space: nowrap;">
+                        {{ _('download_btn') }} <i class="fa-solid fa-download"></i>
+                    </button>
+                </div>
+                <div id="downloadResult" style="color: var(--snap-yellow); font-size: 0.9rem; min-height: 20px;"></div>
+                <div style="margin-top: 1rem;">
+                    <a href="{{ url_for('register') }}" class="btn-ghost" style="border-radius: 40px;">
+                        {{ _('create_account_auto') }} <i class="fa-solid fa-arrow-left mt-1"></i>
+                    </a>
+                </div>
             </div>
+
+            <script>
+                function downloadSingleStory() {
+                    const url = document.getElementById('singleStoryUrl').value.trim();
+                    const resultDiv = document.getElementById('downloadResult');
+                    if (!url) {
+                        resultDiv.textContent = 'الرجاء إدخال الرابط أولاً';
+                        resultDiv.style.color = '#ff5252';
+                        return;
+                    }
+
+                    resultDiv.textContent = 'جاري جلب المقطع...';
+                    resultDiv.style.color = '#fff';
+
+                    // Show ad (placeholder logic)
+                    window.open('https://example.com/ad', '_blank');
+
+                    fetch('{{ url_for("api_download_single_story") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url })
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success && data.download_url) {
+                                resultDiv.textContent = 'تم الجلب! جاري التحميل...';
+                                resultDiv.style.color = 'var(--snap-yellow)';
+                                window.location.href = data.download_url;
+                            } else {
+                                resultDiv.textContent = data.error || 'حدث خطأ غير متوقع';
+                                resultDiv.style.color = '#ff5252';
+                            }
+                        })
+                        .catch(e => {
+                            resultDiv.textContent = 'خطأ في الاتصال بالسيرفر';
+                            resultDiv.style.color = '#ff5252';
+                        });
+                }
+            </script>
 
             <div class="hero-stats">
                 <div class="stat-item">
-                    <h3>+100K</h3>
-                    <p>فيديو تم رفعه</p>
+                    <h3>{{ _('stats_videos') }}</h3>
+                    <p>{{ _('stats_videos_desc') }}</p>
                 </div>
                 <div class="stat-item">
-                    <h3>%100</h3>
-                    <p>أتمتة شاملة</p>
+                    <h3>{{ _('stats_auto') }}</h3>
+                    <p>{{ _('stats_auto_desc') }}</p>
                 </div>
                 <div class="stat-item">
-                    <h3>Army</h3>
-                    <p>تدوير تلقائي لمفاتيح API</p>
+                    <h3>{{ _('stats_army') }}</h3>
+                    <p>{{ _('stats_army_desc') }}</p>
                 </div>
             </div>
         </div>
@@ -88,46 +147,45 @@
     <!-- Features Section -->
     <section class="features" id="features">
         <div class="section-header">
-            <h2 class="section-title">لماذا تختار <span class="text-gradient">SnapScrap</span>؟</h2>
-            <p class="section-subtitle">قمنا ببناء أقوى نظام للعمل بالخلفية بدون أي تدخل بشري</p>
+            <h2 class="section-title">{{ _('why_choose') }} <span class="text-gradient">SnapScrap</span>؟</h2>
+            <p class="section-subtitle">{{ _('why_choose_sub') }}</p>
         </div>
 
         <div class="features-grid">
             <div class="feature-card glass-panel">
                 <div class="feature-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
-                <h3>سحب تلقائي</h3>
-                <p>راقب حسابات سناب شات وحمّل الستوريات بدقة عالية فور نزولها دون أن تفوتك أي لقطة.</p>
+                <h3>{{ _('feat_1_title') }}</h3>
+                <p>{{ _('feat_1_desc') }}</p>
             </div>
 
             <div class="feature-card glass-panel">
                 <div class="feature-icon"><i class="fa-solid fa-film"></i></div>
-                <h3>دمج ذكي للفيديوهات</h3>
-                <p>محرك FFmpeg مدمج لقص وتوصيل المقاطع وتحويلها إلى Shorts جاهزة للربح.</p>
+                <h3>{{ _('feat_2_title') }}</h3>
+                <p>{{ _('feat_2_desc') }}</p>
             </div>
 
             <div class="feature-card glass-panel">
                 <div class="feature-icon"><i class="fa-brands fa-youtube"></i></div>
-                <h3>نشر مباشر ليوتيوب</h3>
-                <p>اربط قناتك مرة واحدة، ودع النظام ينشر لك الفيديوهات بأسماء وعلامات دلالية محسنة (SEO).</p>
+                <h3>{{ _('feat_3_title') }}</h3>
+                <p>{{ _('feat_3_desc') }}</p>
             </div>
 
             <div class="feature-card glass-panel">
                 <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
-                <h3>جيش المفاتيح (Army of APIs)</h3>
-                <p>تجاوز قيود يوتيوب لرفع الفيديوهات من خلال التبديل التلقائي لمفاتيح API المتعددة عند استنفاد الحصة.
-                </p>
+                <h3>{{ _('feat_4_title') }}</h3>
+                <p>{{ _('feat_4_desc') }}</p>
             </div>
 
             <div class="feature-card glass-panel">
                 <div class="feature-icon"><i class="fa-solid fa-clock"></i></div>
-                <h3>جدولة ذكية</h3>
-                <p>حدد وقت تشغيل السيستم يومياً ليتوافق مع ذروة تواجد جمهورك على الشبكة.</p>
+                <h3>{{ _('feat_5_title') }}</h3>
+                <p>{{ _('feat_5_desc') }}</p>
             </div>
 
             <div class="feature-card glass-panel">
                 <div class="feature-icon"><i class="fa-solid fa-server"></i></div>
-                <h3>بنية تحتية سحابية</h3>
-                <p>قواعد بيانات معزولة (Multi-Tenancy) تضمن خصوصية ملفاتك وسرعة فائقة في التنفيذ.</p>
+                <h3>{{ _('feat_6_title') }}</h3>
+                <p>{{ _('feat_6_desc') }}</p>
             </div>
         </div>
     </section>
@@ -135,57 +193,40 @@
     <!-- Pricing Section -->
     <section class="pricing" id="pricing">
         <div class="section-header">
-            <h2 class="section-title">باقات <span class="text-gradient">مرنة</span> للجميع</h2>
-            <p class="section-subtitle">اختر الخطة التي تتناسب مع حجم قنواتك وأهدافك</p>
+            <h2 class="section-title">{{ _('pricing_title') }}</h2>
+            <p class="section-subtitle">{{ _('pricing_sub') }}</p>
         </div>
 
         <div class="pricing-grid">
-            <!-- Free / Starter -->
-            <div class="price-card glass-panel">
-                <div class="tier-name">المبتدئ</div>
-                <div class="tier-price" style="display:flex; flex-direction:column; align-items:center;">
-                    <span style="text-decoration: line-through; color: #888; font-size: 1.5rem;">$15</span>
-                    <span>مجاناً</span>
-                </div>
-                <p class="tier-desc">الخيار المثالي لتجربة المنصة.</p>
-                <ul class="tier-features">
-                    <li><i class="fa-solid fa-check"></i> حساب سناب شات عدد 2</li>
-                    <li><i class="fa-solid fa-check"></i> حساب يوتيوب عدد 1</li>
-                    <li><i class="fa-solid fa-check"></i> أتمتة يومية (مرة واحدة)</li>
-                    <li><i class="fa-solid fa-xmark text-muted"></i> لا يدعم Army Of APIs</li>
-                </ul>
-                <a href="{{ url_for('register') }}" class="btn-ghost w-100">ابدا التجربة</a>
-            </div>
-
             <!-- Pro -->
             <div class="price-card glass-panel popular">
-                <div class="popular-badge">الأكثر طلباً</div>
-                <div class="tier-name">المحترف (Pro)</div>
-                <div class="tier-name tag-gradient" style="font-size:12px; margin-bottom: 10px;">مع تفعيل Stripe
-                    Checkout</div>
-                <div class="tier-price">$29<span>/شهر</span></div>
-                <p class="tier-desc">للراغبين في توسيع عملياتهم وزيادة عدد القنوات.</p>
+                <div class="popular-badge">{{ _('most_popular') }}</div>
+                <div class="tier-name">{{ _('tier_pro_name') }}</div>
+                <div class="tier-name tag-gradient" style="font-size:12px; margin-bottom: 10px;">{{ _('tier_pro_tag') }}
+                </div>
+                <div class="tier-price">{{ _('tier_pro_price') }}<span>{{ _('per_month') }}</span></div>
+                <p class="tier-desc">{{ _('tier_pro_desc') }}</p>
                 <ul class="tier-features">
-                    <li><i class="fa-solid fa-check"></i> حساب سناب شات عدد 10</li>
-                    <li><i class="fa-solid fa-check"></i> حساب يوتيوب عدد 5</li>
-                    <li><i class="fa-solid fa-check"></i> أتمتة مجدولة 4 مرات يومياً</li>
-                    <li><i class="fa-solid fa-check"></i> دعم الدوران لمفاتيح API (الجيش)</li>
+                    <li><i class="fa-solid fa-check"></i> {{ _('feat_acc_10') }}</li>
+                    <li><i class="fa-solid fa-check"></i> {{ _('feat_yt_5') }}</li>
+                    <li><i class="fa-solid fa-check"></i> {{ _('feat_sch_4') }}</li>
+                    <li><i class="fa-solid fa-check"></i> {{ _('feat_army') }}</li>
                 </ul>
-                <a href="{{ url_for('register') }}" class="btn-primary w-100">اشترك الآن</a>
+                <a href="{{ url_for('register') }}" class="btn-primary w-100">{{ _('subscribe_now') }}</a>
             </div>
 
             <!-- Enterprise -->
             <div class="price-card glass-panel">
-                <div class="tier-name">المشروع (Enterprise)</div>
-                <div class="tier-price">$99<span>/شهر</span></div>
-                <p class="tier-desc">لقنوات الشركات الضخمة والشبكات الكبيرة.</p>
+                <div class="tier-name">{{ _('tier_ent_name') }}</div>
+                <div class="tier-price">{{ _('tier_ent_price') }}<span>{{ _('per_month') }}</span></div>
+                <p class="tier-desc">{{ _('tier_ent_desc') }}</p>
                 <ul class="tier-features">
-                    <li><i class="fa-solid fa-check"></i> حسابات سناب شات غير محدودة</li>
-                    <li><i class="fa-solid fa-check"></i> حسابات يوتيوب غير محدودة</li>
-                    <li><i class="fa-solid fa-check"></i> أتمتة لحظية 24/7</li>
-                    <li><i class="fa-solid fa-check"></i> وكيل مخصص (Dedicated Proxy)</li>
+                    <li><i class="fa-solid fa-check"></i> {{ _('feat_acc_unl') }}</li>
+                    <li><i class="fa-solid fa-check"></i> {{ _('feat_yt_unl') }}</li>
+                    <li><i class="fa-solid fa-check"></i> {{ _('feat_sch_24') }}</li>
+                    <li><i class="fa-solid fa-check"></i> {{ _('feat_proxy') }}</li>
                 </ul>
-                <a href="mailto:contact@snapscrap.tech" class="btn-ghost w-100">تواصل معنا</a>
+                <a href="mailto:contact@snapscrap.tech" class="btn-ghost w-100">{{ _('contact_us') }}</a>
             </div>
         </div>
     </section>
@@ -197,7 +238,7 @@
                 <i class="fa-solid fa-bolt text-gradient"></i> SnapScrap SaaS
             </div>
             <div class="footer-bottom">
-                <p>جميع الحقوق محفوظة &copy; 2026. المالك الحصري Bakir Lakaf.</p>
+                <p>{{ _('footer_rights') }}</p>
             </div>
     </footer>
 

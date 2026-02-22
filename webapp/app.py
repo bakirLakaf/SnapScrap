@@ -16,6 +16,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from webapp.models import db, User, ConnectedChannel
@@ -26,8 +27,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500MB
 app.config["UPLOAD_FOLDER"] = BASE_DIR / "uploads"
-app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "snapscrap-web-secret-change-in-prod-v2")
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'snapscrap.db'}"
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'super-secret-default-key-123')
+# Prevent XSS & Session Hijacking
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Trust reverse proxies for HTTPS scheme
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+# Configure database
+db_url = os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'snapscrap.db'}")
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"].mkdir(exist_ok=True)
 
@@ -65,6 +80,32 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+def load_translations():
+    t_file = BASE_DIR / "webapp" / "translations.json"
+    if t_file.exists():
+        with open(t_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+translations = load_translations()
+
+def get_current_language():
+    return session.get('lang', 'ar')
+
+def _(key):
+    lang = get_current_language()
+    return translations.get(lang, {}).get(key, key)
+
+@app.context_processor
+def inject_translations():
+    return dict(_=_, current_lang=get_current_language())
+
+@app.route("/set_lang/<lang>")
+def set_lang(lang):
+    if lang in ["ar", "en", "fr"]:
+        session['lang'] = lang
+    return redirect(request.referrer or url_for('landing'))
+
 # Auto-Migration for V2 SQLite (Add new columns without dropping data)
 with app.app_context():
     db.create_all()
@@ -74,16 +115,20 @@ with app.app_context():
         db.session.execute(text("SELECT stripe_customer_id FROM user LIMIT 1"))
     except Exception:
         db.session.rollback()
-        print("Migrating local database: Adding stripe_customer_id, subscription_tier, and created_at to User table...")
-        try:
-            db.session.execute(text("ALTER TABLE user ADD COLUMN subscription_tier VARCHAR(50) DEFAULT 'free'"))
-            db.session.execute(text("ALTER TABLE user ADD COLUMN stripe_customer_id VARCHAR(255)"))
-            db.session.execute(text("ALTER TABLE user ADD COLUMN created_at DATETIME"))
-            db.session.commit()
-            print("Migration successful.")
-        except Exception as e:
-            db.session.rollback()
-            print("Migration failed (columns might already exist or DB is locked):", e)
+        print("Migrating local database: Checking missing columns in User table...")
+        columns_to_add = [
+            ("subscription_tier", "VARCHAR(50) DEFAULT 'free'"),
+            ("stripe_customer_id", "VARCHAR(255)"),
+            ("created_at", "DATETIME")
+        ]
+        for col_name, col_def in columns_to_add:
+            try:
+                db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col_name} {col_def}"))
+                db.session.commit()
+                print(f"Added column {col_name}.")
+            except Exception:
+                db.session.rollback()
+                pass
 
 @app.before_request
 def require_login():
@@ -504,7 +549,6 @@ def dashboard():
 
 
 @app.route("/api/download_single_story", methods=["POST"])
-@login_required
 @limiter.limit("10 per minute")
 def api_download_single_story():
     url = request.json.get("url", "").strip()
@@ -565,8 +609,7 @@ def api_accounts():
     accounts = get_accounts()
     
     if action == "add":
-        tier = current_user.subscription_tier if hasattr(current_user, 'subscription_tier') else "free"
-        max_accounts = 2 if tier == "free" else (10 if tier == "pro" else 999)
+        max_accounts = 999
         if len(accounts) >= max_accounts:
             return jsonify({"ok": False, "error": f"You reached your limit of {max_accounts} accounts. Upgrade to add more."})
             
@@ -582,8 +625,7 @@ def api_accounts():
         save_accounts(accounts, current_user.id)
         
     elif action == "add_bulk":
-        tier = current_user.subscription_tier if hasattr(current_user, 'subscription_tier') else "free"
-        max_accounts = 2 if tier == "free" else (10 if tier == "pro" else 999)
+        max_accounts = 999
         
         raw = data.get("usernames") or data.get("text") or ""
         if isinstance(raw, list):
@@ -949,6 +991,6 @@ def api_clear_batch():
         return jsonify({"ok": False, "error": str(e)})
 
 
-if __name__ == "__main__":
-    print("\n  SnapScrap Web -> http://127.0.0.1:5000\n")
-    app.run(debug=True, host="0.0.0.0", port=5000, use_reloader=False)
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port)

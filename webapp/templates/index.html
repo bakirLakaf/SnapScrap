@@ -21,14 +21,14 @@
                     <i class="fa-brands fa-snapchat logo-snapchat-small fa-2x"></i>
                     <h2>SnapScrap</h2>
                 </div>
-                <div id="google_translate_element" style="margin-top: 10px;"></div>
-                <script type="text/javascript">
-                    function googleTranslateElementInit() {
-                        new google.translate.TranslateElement({ pageLanguage: 'ar', includedLanguages: 'ar,en,fr', layout: google.translate.TranslateElement.InlineLayout.SIMPLE }, 'google_translate_element');
-                    }
-                </script>
-                <script type="text/javascript"
-                    src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+                <div class="lang-switcher" style="margin-top: 10px;">
+                    <select onchange="window.location.href='/set_lang/'+this.value" class="nice-select"
+                        style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 5px; outline: none;">
+                        <option value="ar" {% if current_lang=='ar' %}selected{% endif %}>العربية</option>
+                        <option value="en" {% if current_lang=='en' %}selected{% endif %}>English</option>
+                        <option value="fr" {% if current_lang=='fr' %}selected{% endif %}>Français</option>
+                    </select>
+                </div>
             </header>
     </div>
 

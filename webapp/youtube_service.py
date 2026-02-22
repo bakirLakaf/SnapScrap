@@ -80,7 +80,8 @@ def save_youtube_channels(channels, user_id=None):
 def _migrate_legacy_token():
     """If token.json exists but no channels in config, migrate it."""
     channels = get_youtube_channels_config()
-    if channels or not DEFAULT_TOKEN.exists():
+    default_token = get_tokens_dir() / "token.json"
+    if channels or not default_token.exists():
         return
     youtube, err = get_youtube_service(channel_id=None)
     if err:
@@ -93,9 +94,9 @@ def _migrate_legacy_token():
             ch_id = c["id"]
             title = c["snippet"].get("title", "YouTube")
             token_path = _token_path(ch_id)
-            if token_path != DEFAULT_TOKEN:
+            if token_path != default_token:
                 import shutil
-                shutil.copy(DEFAULT_TOKEN, token_path)
+                shutil.copy(default_token, token_path)
             save_youtube_channels([{"id": ch_id, "title": title}])
     except Exception:
         pass
@@ -114,8 +115,27 @@ def _get_all_tokens_for_channel(channel_id, user_id=None):
     return sorted(tokens)
 
 
-def get_youtube_service(channel_id=None, token_path_override=None):
-    """Get YouTube API service for a specific channel. channel_id=None uses first available token."""
+def _get_client_secrets():
+    secrets = []
+    for p in BASE_DIR.glob("client_secret*.json"):
+        if p.name == "client_secrets.json":
+            continue
+        secrets.append(p)
+    if not secrets:
+        if (BASE_DIR / "client_secrets.json").exists():
+            secrets.append(BASE_DIR / "client_secrets.json")
+    return sorted(secrets)
+
+def _get_token_for_secret(channel_id, user_id, secret_path):
+    secret_name = secret_path.stem
+    suffix = secret_name.replace("client_secret", "")
+    tdir = get_tokens_dir(user_id)
+    if not channel_id:
+        return tdir / f"token{suffix}.json"
+    return tdir / f"token{suffix}_{_safe_channel_id(channel_id)}.json"
+
+def get_youtube_service(channel_id=None, token_path_override=None, client_secret_path=None):
+    """Get YouTube API service for a specific channel. Uses provided secret or defaults to client_secret.json"""
     try:
         from google.auth.transport.requests import Request
         from google.oauth2.credentials import Credentials
@@ -305,15 +325,21 @@ def upload_from_folder(username, date_str, privacy="private", upload_type="short
         return {"success": False, "error": f"No videos found to upload in {merged_folder} (check merge type: Shorts or Full)"}
 
     user_id = get_user_id()
-    tokens = _get_all_tokens_for_channel(channel_id, user_id)
-    current_token_idx = 0
+    client_secrets = _get_client_secrets()
+    if not client_secrets:
+        return {"success": False, "error": "No client_secret.json files found in project root."}
 
     for vid_type, path, title in to_upload:
         uploaded_this = False
-        while not uploaded_this and current_token_idx < len(tokens):
-            youtube, err = get_youtube_service(channel_id=channel_id, token_path_override=tokens[current_token_idx])
+        secret_idx = 0
+
+        while not uploaded_this and secret_idx < len(client_secrets):
+            current_secret = client_secrets[secret_idx]
+            current_token = _get_token_for_secret(channel_id, user_id, current_secret)
+
+            youtube, err = get_youtube_service(channel_id=channel_id, token_path_override=current_token, client_secret_path=current_secret)
             if err:
-                current_token_idx += 1
+                secret_idx += 1
                 continue
                 
             try:
@@ -334,7 +360,7 @@ def upload_from_folder(username, date_str, privacy="private", upload_type="short
             except HttpError as e:
                 # 403 / Quota Exceeded Token Fallback (Army of APIs)
                 if e.resp.status in (403, 429) and "quota" in str(e).lower():
-                    current_token_idx += 1
+                    secret_idx += 1
                     continue
                 return {"success": uploaded > 0, "error": str(e), "count": uploaded}
             except Exception as e:

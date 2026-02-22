@@ -163,14 +163,23 @@
                 <i class="fa-brands fa-snapchat"></i>
                 <h1>SnapScrap</h1>
             </div>
-            <div id="google_translate_element" style="text-align:center; margin-bottom: 20px;"></div>
-            <script type="text/javascript">
-                function googleTranslateElementInit() {
-                    new google.translate.TranslateElement({ pageLanguage: 'ar', includedLanguages: 'ar,en,fr', layout: google.translate.TranslateElement.InlineLayout.SIMPLE }, 'google_translate_element');
-                }
-            </script>
-            <script type="text/javascript"
-                src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+            <div class="lang-switcher" style="margin-bottom: 20px; display: flex; justify-content: center;">
+                <div
+                    style="display: flex; align-items: center; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 15px;">
+                    <i class="fa-solid fa-globe" style="margin-left: 8px; color: #fff;"></i>
+                    <select onchange="window.location.href='/set_lang/'+this.value"
+                        style="background: transparent; color: #fff; border: none; font-weight: bold; outline: none; appearance: none; -webkit-appearance: none; cursor: pointer;">
+                        <option style="color: #000;" value="ar" {% if current_lang=='ar' %}selected{% endif %}>العربية
+                        </option>
+                        <option style="color: #000;" value="en" {% if current_lang=='en' %}selected{% endif %}>English
+                        </option>
+                        <option style="color: #000;" value="fr" {% if current_lang=='fr' %}selected{% endif %}>Français
+                        </option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down"
+                        style="font-size: 0.7em; margin-right: 8px; color: #fff; pointer-events: none;"></i>
+                </div>
+            </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -186,22 +195,23 @@
                 action="{% if mode == 'login' %}{{ url_for('login') }}{% else %}{{ url_for('register') }}{% endif %}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <div class="input-row">
-                    <input type="text" name="username" placeholder="اسم المستخدم" required autocomplete="username">
+                    <input type="text" name="username" placeholder="{{ _('auth_username') }}" required
+                        autocomplete="username">
                 </div>
                 <div class="input-row">
-                    <input type="password" name="password" placeholder="كلمة المرور" required
+                    <input type="password" name="password" placeholder="{{ _('auth_password') }}" required
                         autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn btn-primary">
-                    {% if mode == 'login' %}تسجيل الدخول{% else %}إنشاء حساب{% endif %}
+                    {% if mode == 'login' %}{{ _('login') }}{% else %}{{ _('auth_register_btn') }}{% endif %}
                 </button>
             </form>
 
             <div class="auth-footer">
                 {% if mode == 'login' %}
-                ليس لديك حساب؟ <a href="{{ url_for('register') }}">أنشئ حساباً جديداً</a>
+                {{ _('auth_no_account') }} <a href="{{ url_for('register') }}">{{ _('auth_create_new') }}</a>
                 {% else %}
-                لديك حساب بالفعل؟ <a href="{{ url_for('login') }}">تسجيل الدخول</a>
+                {{ _('auth_has_account') }} <a href="{{ url_for('login') }}">{{ _('login') }}</a>
                 {% endif %}
             </div>
         </div>

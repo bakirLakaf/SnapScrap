@@ -31,6 +31,7 @@ def create_checkout_session():
         
     data = request.get_json() or {}
     tier = data.get("tier", "pro")
+    
     price_id = PRICES.get(tier)
     
     if not price_id:
