@@ -1,64 +1,25 @@
-# SnapScrap.py
+# ⚡ SnapScrap — منصة أتمتة يوتيوب شورتس
 
-Downloads public Snapchat stories to your system. Includes merge, YouTube upload, batch processing, and GUI.
+مرحباً بك في **SnapScrap!** 
+هذا المستودع يحتوي على الكود המصدري الخاص بمنصة **SnapScrap SaaS** (النسخة السحابية).
 
-## Install
+لقد قمنا بتحويل السكربت من مجرد أداة تعمل على سطر الأوامر إلى **منصة متكاملة وتجارية** تعمل على السحابة، تقدم لك أتمتة شاملة بدون حاجة لترك جهازك مفتوحاً!
 
-```bash
-git clone https://github.com/allendema/SnapScrap.py.git
-cd SnapScrap.py/
-pip install -r requirements.txt
-```
+---
 
-## Commands
+## 🚀 لماذا تختار SnapScrap SaaS؟
+لا مزيد من تحميل المقاطع يدوياً، ولا مزيد من دمجها ببرامج المونتاج يومياً. 
+المنصة تقوم بالآتي نيابة عنك:
+- **تحميل آلي (Scraping):** مراقبة وحفظ ستوريات سناب شات يومياً.
+- **مونتاج ذكي (Auto-Merge):** دمج الستوريات وتحويلها لمقاطع جاهزة لمنصة YouTube Shorts.
+- **جيش المفاتيح (Army of APIs):** نظام تدوير مفاتيح ذكي لتجنب حظر الرفع (Quota Exceeded) من يوتيوب.
+- **جدولة يومية:** تحديد توقيت الرفع ليتناسب مع ذروة تفاعل جمهورك.
 
-| Task | Command |
-|------|---------|
-| **Download** | `python SnapScrap.py <username>` |
-| **Download + merge** | `python SnapScrap.py <username> --merge` |
-| **Merge videos** | `python merge_videos.py <username> [YYYY-MM-DD] [--all]` |
-| **Upload to YouTube** | `python upload_youtube_shorts.py <username> [date] [private\|public\|unlisted]` |
-| **One account (full)** | `python daily_automation.py <username> [--no-upload] [privacy]` |
-| **Multiple accounts** | `python batch_processor.py [--no-upload] [privacy]` (reads `accounts.txt`) |
-| **GUI** | `python snapscrap_gui.py` |
-| **Web App** | `run_web.bat` or `python -m flask --app webapp.app run` |
+## 🌐 ابدأ الآن!
+لست بحاجة إلى تنزيل الأكواد أو تشغيلها على جهازك بعد الآن. 
+كل ما عليك فعله هو زيارة موقعنا الرسمي، إنشاء حساب مجاني، والبدء في بناء إمبراطوريتك على يوتيوب:
 
-## Web App (جديد)
+👉 **[اشترك الآن وابدأ الأتمتة مجاناً!](https://snapscrap.up.railway.app)**
 
-واجهة ويب حديثة مع:
-- تنزيل Stories ودمج الفيديوهات
-- **رفع إلى يوتيوب فقط** — من المجلد المدمج أو رفع ملف فيديو مباشرة
-- تصميم عصري وأنيق
-
-```bash
-pip install -r requirements_web.txt
-run_web.bat
-# أو: python -m flask --app webapp.app run
-# ثم افتح: http://127.0.0.1:5000
-```
-
-## Help
-
-```bash
-python SnapScrap.py help
-# Or from CMD: run.bat help   (run.bat en help for English)
-```
-
-## Output layout
-
-- Download: `username/YYYY-MM-DD/`
-- Merged videos: `username/YYYY-MM-DD/merged/`
-
-## Requirements
-
-- **ffmpeg** (for merge): install system ffmpeg or `pip install imageio-ffmpeg`
-- **YouTube upload** (optional): `pip install google-api-python-client google-auth-oauthlib google-auth-httplib2` + `client_secret.json` from Google Cloud Console
-- **GUI** (optional): `pip install -r requirements_gui.txt`
-
-## Heads Up
-
-Use to archive important things, be polite and cause no harm. Use at own risk.
-
-Allen 2022
-
-[![License: Apache License 2.0](https://img.shields.io/github/license/allendema/SnapScrap.py)](https://github.com/allendema/SnapScrap.py/blob/main/LICENSE)
+---
+*تم تطوير المنصة بواسطة **Bakir Lakaf** | جميع الحقوق محفوظة &copy; 2026*

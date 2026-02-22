@@ -56,11 +56,17 @@ def main():
                 
                 # Assume auto upload if they had schedule enabled (could add a config for this)
                 print(f" -> Uploading: {username}")
-                # We can call youtube_service directly or a script. Let's use youtube_service directly here.
                 try:
                     from webapp.youtube_service import upload_from_folder
                     os.environ["SNAPSCRAP_USER_ID"] = str(user.id)
                     upload_from_folder(username, date_str, "private")
+                    
+                    # Cleanup storage to prevent server from filling up
+                    import shutil
+                    folder_path = os.path.join(script_dir, "stories", str(user.id), username, date_str)
+                    if os.path.exists(folder_path):
+                        shutil.rmtree(folder_path)
+                        print(f"    [OK] Cleaned up storage: {folder_path}")
                 except Exception as e:
                     print(f"    Upload err: {e}")
 
