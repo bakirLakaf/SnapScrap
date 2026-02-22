@@ -107,7 +107,12 @@ def user_input():
         show_help()
         sys.exit(0)
 
-    path = os.path.join("stories", username)
+    user_id = os.environ.get("SNAPSCRAP_USER_ID", "")
+    if user_id:
+        path = os.path.join("stories", user_id, username)
+    else:
+        path = os.path.join("stories", username)
+        
     date_str = date.today().strftime("%Y-%m-%d")
     date_folder = os.path.join(path, date_str)
 

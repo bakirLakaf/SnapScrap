@@ -183,7 +183,12 @@ def main():
     username = args[0]
     date_str = args[1] if len(args) > 1 else date.today().strftime("%Y-%m-%d")
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    folder = os.path.join(script_dir, "stories", username, date_str)
+    
+    user_id = os.environ.get("SNAPSCRAP_USER_ID", "")
+    if user_id:
+        folder = os.path.join(script_dir, "stories", user_id, username, date_str)
+    else:
+        folder = os.path.join(script_dir, "stories", username, date_str)
     if not os.path.isdir(folder):
         print(f"Folder not found: {folder}" if USE_EN else f"المجلد غير موجود: {folder}")
         sys.exit(1)

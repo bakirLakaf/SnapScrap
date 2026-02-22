@@ -12,25 +12,46 @@ SCOPES = [
     "https://www.googleapis.com/auth/youtube.readonly",
 ]
 
-TOKENS_DIR.mkdir(parents=True, exist_ok=True)
 CONFIG_KEY = "youtube_channels"
-DEFAULT_TOKEN = BASE_DIR / "stories" / "tokens" / "token.json"
 
+def get_user_id():
+    try:
+        from flask_login import current_user
+        if current_user and current_user.is_authenticated:
+            return current_user.id
+    except RuntimeError:
+        pass
+    except ImportError:
+        pass
+    return os.environ.get("SNAPSCRAP_USER_ID", "")
+
+def get_user_dir(user_id=None):
+    uid = user_id if user_id is not None else get_user_id()
+    d = BASE_DIR / "stories" / str(uid) if uid else BASE_DIR / "stories"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+def get_tokens_dir(user_id=None):
+    d = get_user_dir(user_id) / "tokens"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
 def _safe_channel_id(channel_id):
     """Make channel ID safe for filename (replace non-alphanumeric)."""
     return re.sub(r"[^A-Za-z0-9_-]", "_", channel_id) if channel_id else "default"
 
-
-def _token_path(channel_id):
+def _token_path(channel_id, user_id=None):
     """Get token file path for a channel."""
+    tdir = get_tokens_dir(user_id)
     if not channel_id:
-        return DEFAULT_TOKEN
-    return TOKENS_DIR / f"token_{_safe_channel_id(channel_id)}.json"
+        return tdir / "token.json"
+    return tdir / f"token_{_safe_channel_id(channel_id)}.json"
 
+def get_webapp_config_file(user_id=None):
+    return get_user_dir(user_id) / "webapp_config.json"
 
-def load_webapp_config():
-    cfg_file = BASE_DIR / "webapp_config.json"
+def load_webapp_config(user_id=None):
+    cfg_file = get_webapp_config_file(user_id)
     if cfg_file.exists():
         try:
             with open(cfg_file, "r", encoding="utf-8") as f:
@@ -39,24 +60,21 @@ def load_webapp_config():
             pass
     return {}
 
-
-def save_webapp_config(config):
-    cfg_file = BASE_DIR / "webapp_config.json"
+def save_webapp_config(config, user_id=None):
+    cfg_file = get_webapp_config_file(user_id)
     with open(cfg_file, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
 
-
-def get_youtube_channels_config():
+def get_youtube_channels_config(user_id=None):
     """Get list of connected channels from config."""
-    cfg = load_webapp_config()
+    cfg = load_webapp_config(user_id)
     return cfg.get(CONFIG_KEY, [])
 
-
-def save_youtube_channels(channels):
+def save_youtube_channels(channels, user_id=None):
     """Save connected channels to config."""
-    cfg = load_webapp_config()
+    cfg = load_webapp_config(user_id)
     cfg[CONFIG_KEY] = channels
-    save_webapp_config(cfg)
+    save_webapp_config(cfg, user_id)
 
 
 def _migrate_legacy_token():
@@ -83,7 +101,20 @@ def _migrate_legacy_token():
         pass
 
 
-def get_youtube_service(channel_id=None):
+def _get_all_tokens_for_channel(channel_id, user_id=None):
+    tdir = get_tokens_dir(user_id)
+    if not channel_id:
+        return [tdir / "token.json"]
+    base_name = f"token_{_safe_channel_id(channel_id)}"
+    tokens = []
+    for p in tdir.glob(f"{base_name}*.json"):
+        tokens.append(p)
+    if not tokens:
+        tokens.append(tdir / f"{base_name}.json")
+    return sorted(tokens)
+
+
+def get_youtube_service(channel_id=None, token_path_override=None):
     """Get YouTube API service for a specific channel. channel_id=None uses first available token."""
     try:
         from google.auth.transport.requests import Request
@@ -96,18 +127,19 @@ def get_youtube_service(channel_id=None):
     client_path = BASE_DIR / "client_secret.json"
     if not client_path.exists():
         client_path = BASE_DIR / "client_secrets.json"
-    if not client_path.exists():
-        return None, "Place client_secret.json in project folder (from Google Cloud Console)"
 
-    token_path = _token_path(channel_id) if channel_id else None
+    user_id = get_user_id()
+    token_path = token_path_override
     if not token_path:
-        token_path = DEFAULT_TOKEN
-        if not token_path.exists():
-            channels = get_youtube_channels_config()
-            if channels:
-                token_path = _token_path(channels[0].get("id"))
-            if not token_path or not token_path.exists():
-                return None, "No channels connected. Add a channel first (+ إضافة قناة)"
+        token_path = _token_path(channel_id, user_id) if channel_id else None
+        if not token_path:
+            token_path = get_tokens_dir(user_id) / "token.json"
+            if not token_path.exists():
+                channels = get_youtube_channels_config(user_id)
+                if channels:
+                    token_path = _token_path(channels[0].get("id"), user_id)
+                if not token_path or not token_path.exists():
+                    return None, "No channels connected. Add a channel first (+ إضافة قناة)"
 
     creds = None
     if token_path and token_path.exists():
@@ -116,9 +148,11 @@ def get_youtube_service(channel_id=None):
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            if not client_path.exists():
+                return None, "Place client_secret.json in project folder (from Google Cloud Console)"
             flow = InstalledAppFlow.from_client_secrets_file(str(client_path), SCOPES)
             creds = flow.run_local_server(port=0)
-        out_path = _token_path(channel_id) if channel_id else token_path
+        out_path = token_path_override if token_path_override else (_token_path(channel_id, user_id) if channel_id else token_path)
         with open(out_path, "w") as f:
             f.write(creds.to_json())
 
@@ -248,6 +282,7 @@ def upload_from_folder(username, date_str, privacy="private", upload_type="short
 
     try:
         from googleapiclient.http import MediaFileUpload
+        from googleapiclient.errors import HttpError
     except ImportError:
         return {"success": False, "error": "Missing google-api-python-client"}
 
@@ -269,23 +304,44 @@ def upload_from_folder(username, date_str, privacy="private", upload_type="short
     if not to_upload:
         return {"success": False, "error": f"No videos found to upload in {merged_folder} (check merge type: Shorts or Full)"}
 
+    user_id = get_user_id()
+    tokens = _get_all_tokens_for_channel(channel_id, user_id)
+    current_token_idx = 0
+
     for vid_type, path, title in to_upload:
-        try:
-            if vid_type == "short":
-                desc = f"Snapchat Stories from {display_name}\n\n#Shorts #Snapchat"
-                tags = ["Shorts", "Snapchat"]
-            else:
-                desc = f"Snapchat Stories from {display_name} - Full compilation\n\n#Snapchat"
-                tags = ["Snapchat", "Stories"]
-            body = {
-                "snippet": {"title": title, "description": desc, "tags": tags, "categoryId": "22"},
-                "status": {"privacyStatus": privacy},
-            }
-            media = MediaFileUpload(str(path), mimetype="video/mp4", resumable=True, chunksize=1024 * 1024)
-            youtube.videos().insert(part="snippet,status", body=body, media_body=media).execute()
-            uploaded += 1
-        except Exception as e:
-            return {"success": uploaded > 0, "error": str(e), "count": uploaded}
+        uploaded_this = False
+        while not uploaded_this and current_token_idx < len(tokens):
+            youtube, err = get_youtube_service(channel_id=channel_id, token_path_override=tokens[current_token_idx])
+            if err:
+                current_token_idx += 1
+                continue
+                
+            try:
+                if vid_type == "short":
+                    desc = f"Snapchat Stories from {display_name}\n\n#Shorts #Snapchat"
+                    tags = ["Shorts", "Snapchat"]
+                else:
+                    desc = f"Snapchat Stories from {display_name} - Full compilation\n\n#Snapchat"
+                    tags = ["Snapchat", "Stories"]
+                body = {
+                    "snippet": {"title": title, "description": desc, "tags": tags, "categoryId": "22"},
+                    "status": {"privacyStatus": privacy},
+                }
+                media = MediaFileUpload(str(path), mimetype="video/mp4", resumable=True, chunksize=1024 * 1024)
+                youtube.videos().insert(part="snippet,status", body=body, media_body=media).execute()
+                uploaded += 1
+                uploaded_this = True
+            except HttpError as e:
+                # 403 / Quota Exceeded Token Fallback (Army of APIs)
+                if e.resp.status in (403, 429) and "quota" in str(e).lower():
+                    current_token_idx += 1
+                    continue
+                return {"success": uploaded > 0, "error": str(e), "count": uploaded}
+            except Exception as e:
+                return {"success": uploaded > 0, "error": str(e), "count": uploaded}
+
+        if not uploaded_this:
+            return {"success": uploaded > 0, "error": "All tokens exhausted (Quota limits reached)", "count": uploaded}
 
     if uploaded > 0 and uploaded == len(to_upload):
         try:

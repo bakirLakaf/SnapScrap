@@ -11,67 +11,111 @@ from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, redirect, render_template, request, session, url_for
+import functools
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for, flash
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from webapp.models import db, User, ConnectedChannel
+from webapp.billing import billing_bp
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500MB
 app.config["UPLOAD_FOLDER"] = BASE_DIR / "uploads"
-app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "snapscrap-web-secret-change-in-prod")
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "snapscrap-web-secret-change-in-prod-v2")
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'snapscrap.db'}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"].mkdir(exist_ok=True)
 
-CONFIG_FILE = BASE_DIR / "webapp_config.json"
+app.register_blueprint(billing_bp)
+
+db.init_app(app)
+
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+with app.app_context():
+    db.create_all()
+
+@app.before_request
+def require_login():
+    allowed_routes = ['login', 'register', 'static', 'landing', 'billing.stripe_webhook']
+    if request.endpoint not in allowed_routes and not current_user.is_authenticated:
+        if request.path.startswith('/api/'):
+            return jsonify({"ok": False, "error": "Unauthorized. Please login."}), 401
+        return redirect(url_for('login'))
+
 ACCOUNTS_KEY = "accounts"
 SCHEDULE_KEY = "schedule"
 tasks = {}
 
+def get_user_config_file(user_id=None):
+    if user_id is None:
+        if current_user and current_user.is_authenticated:
+            user_id = current_user.id
+        else:
+            return None
+    user_dir = BASE_DIR / "stories" / str(user_id)
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir / "webapp_config.json"
 
-def load_config():
+
+def load_config(user_id=None):
     """Load webapp config."""
-    if CONFIG_FILE.exists():
+    config_file = get_user_config_file(user_id)
+    if config_file and config_file.exists():
         try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, OSError):
             pass
     return {}
 
 
-def save_config(config):
+def save_config(config, user_id=None):
     """Save webapp config."""
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+    config_file = get_user_config_file(user_id)
+    if not config_file:
+        return
+    with open(config_file, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
         f.flush()
         os.fsync(f.fileno())
 
 
-def get_accounts():
+def get_accounts(user_id=None):
     """Get accounts list: [{username, checked}, ...]."""
-    cfg = load_config()
+    cfg = load_config(user_id)
     return cfg.get(ACCOUNTS_KEY, [])
 
 
-def save_accounts(accounts):
+def save_accounts(accounts, user_id=None):
     """Save accounts."""
-    cfg = load_config()
+    cfg = load_config(user_id)
     cfg[ACCOUNTS_KEY] = accounts
-    save_config(cfg)
+    save_config(cfg, user_id)
 
 
-def get_schedule():
+def get_schedule(user_id=None):
     """Get schedule: {enabled, hour, minute, merge}."""
-    cfg = load_config()
+    cfg = load_config(user_id)
     return cfg.get(SCHEDULE_KEY, {"enabled": False, "hour": 9, "minute": 0, "merge": False})
 
 
-def save_schedule(schedule):
+def save_schedule(schedule, user_id=None):
     """Save schedule."""
-    cfg = load_config()
+    cfg = load_config(user_id)
     cfg[SCHEDULE_KEY] = schedule
-    save_config(cfg)
+    save_config(cfg, user_id)
 
 
 def get_merged_folders():
@@ -99,18 +143,20 @@ def get_merged_folders():
 
 def run_task(task_id, task_type, **kwargs):
     """Run task in background."""
+    user_id = current_user.id if current_user and current_user.is_authenticated else ""
+    
     def _run():
         try:
             if task_type == "download":
-                _run_download(task_id, kwargs.get("username"), kwargs.get("merge", False))
+                _run_download(task_id, kwargs.get("username"), kwargs.get("merge", False), user_id)
             elif task_type == "download_batch":
-                _run_download_batch(task_id, kwargs.get("usernames", []), kwargs.get("merge", False))
+                _run_download_batch(task_id, kwargs.get("usernames", []), kwargs.get("merge", False), user_id)
             elif task_type == "merge":
-                _run_merge(task_id, kwargs.get("username"), kwargs.get("date_str"), kwargs.get("merge_mode", "shorts"))
+                _run_merge(task_id, kwargs.get("username"), kwargs.get("date_str"), kwargs.get("merge_mode", "shorts"), user_id)
             elif task_type == "upload":
-                _run_upload(task_id, kwargs.get("username"), kwargs.get("date_str"), kwargs.get("privacy", "private"), kwargs.get("upload_type", "shorts"), kwargs.get("channel_id"))
+                _run_upload(task_id, kwargs.get("username"), kwargs.get("date_str"), kwargs.get("privacy", "private"), kwargs.get("upload_type", "shorts"), kwargs.get("channel_id"), user_id)
             elif task_type == "upload_file":
-                _run_upload_file(task_id, kwargs.get("file_path"), kwargs.get("title"), kwargs.get("privacy", "private"), kwargs.get("channel_id"))
+                _run_upload_file(task_id, kwargs.get("file_path"), kwargs.get("title"), kwargs.get("privacy", "private"), kwargs.get("channel_id"), user_id)
         except Exception as e:
             tasks[task_id]["status"] = "error"
             tasks[task_id]["message"] = str(e)
@@ -118,7 +164,7 @@ def run_task(task_id, task_type, **kwargs):
     threading.Thread(target=_run, daemon=True).start()
 
 
-def _run_download(task_id, username, do_merge):
+def _run_download(task_id, username, do_merge, user_id=""):
     tasks[task_id]["status"] = "running"
     tasks[task_id]["message"] = f"Downloading {username}..."
     cmd = [sys.executable, str(BASE_DIR / "SnapScrap.py"), username]
@@ -126,7 +172,9 @@ def _run_download(task_id, username, do_merge):
         cmd.append("--merge")
     env = os.environ.copy()
     env["SNAPSCRAP_LANG"] = "en"
-    proc = subprocess.run(cmd, cwd=str(BASE_DIR), capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if user_id:
+        env["SNAPSCRAP_USER_ID"] = str(user_id)
+    proc = subprocess.run(cmd, cwd=str(BASE_DIR), capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
     if proc.returncode != 0:
         tasks[task_id]["status"] = "error"
         tasks[task_id]["message"] = proc.stderr or proc.stdout or "Download failed"
@@ -135,7 +183,7 @@ def _run_download(task_id, username, do_merge):
     tasks[task_id]["message"] = f"Downloaded {username}!"
 
 
-def _run_download_batch(task_id, usernames, do_merge):
+def _run_download_batch(task_id, usernames, do_merge, user_id=""):
     total = len(usernames)
     done = 0
     failed = []
@@ -147,7 +195,9 @@ def _run_download_batch(task_id, usernames, do_merge):
             cmd.append("--merge")
         env = os.environ.copy()
         env["SNAPSCRAP_LANG"] = "en"
-        proc = subprocess.run(cmd, cwd=str(BASE_DIR), capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if user_id:
+            env["SNAPSCRAP_USER_ID"] = str(user_id)
+        proc = subprocess.run(cmd, cwd=str(BASE_DIR), capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
         if proc.returncode != 0:
             failed.append(username)
         else:
@@ -156,11 +206,14 @@ def _run_download_batch(task_id, usernames, do_merge):
     tasks[task_id]["message"] = f"Downloaded {done}/{total}" + (f" — failed: {', '.join(failed)}" if failed else "")
 
 
-def _run_merge(task_id, username, date_str, merge_mode="shorts"):
+def _run_merge(task_id, username, date_str, merge_mode="shorts", user_id=""):
     """merge_mode: shorts | full | both (run both shorts and full)"""
     tasks[task_id]["status"] = "running"
     env = os.environ.copy()
     env["SNAPSCRAP_LANG"] = "en"
+    if user_id:
+        env["SNAPSCRAP_USER_ID"] = str(user_id)
+        
     if merge_mode == "both":
         # First: Shorts (merged_1, merged_2, ...)
         tasks[task_id]["message"] = "Merging Shorts..."
@@ -193,11 +246,13 @@ def _run_merge(task_id, username, date_str, merge_mode="shorts"):
     tasks[task_id]["message"] = "Merge complete!"
 
 
-def _run_upload(task_id, username, date_str, privacy, upload_type="shorts", channel_id=None):
+def _run_upload(task_id, username, date_str, privacy, upload_type="shorts", channel_id=None, user_id=""):
     tasks[task_id]["status"] = "running"
     tasks[task_id]["message"] = "Connecting to YouTube..."
     try:
         from webapp.youtube_service import upload_from_folder
+        if user_id:
+            os.environ["SNAPSCRAP_USER_ID"] = str(user_id)
         result = upload_from_folder(username, date_str, privacy, upload_type=upload_type, channel_id=channel_id)
         if result.get("success"):
             tasks[task_id]["status"] = "done"
@@ -292,8 +347,57 @@ def fetch_snapchat_info(username):
     except Exception:
         return {}
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        if not username or not password:
+            flash("اسم المستخدم وكلمة المرور مطلوبان", "danger")
+            return redirect(url_for("register"))
+        if User.query.filter_by(username=username).first():
+            flash("اسم المستخدم محجوز، اختر اسماً آخر", "danger")
+            return redirect(url_for("register"))
+        
+        user = User(username=username, password_hash=generate_password_hash(password))
+        db.session.add(user)
+        db.session.commit()
+        login_user(user)
+        return redirect(url_for("dashboard"))
+    return render_template("auth.html", mode="register")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user)
+            return redirect(url_for("dashboard"))
+        else:
+            flash("بيانات الدخول غير صحيحة", "danger")
+    return render_template("auth.html", mode="login")
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
 @app.route("/")
-def index():
+def landing():
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+    return render_template("landing.html")
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
     return render_template(
         "index.html",
         merged_folders=get_merged_folders(),
@@ -311,6 +415,11 @@ def api_accounts():
     accounts = get_accounts()
     
     if action == "add":
+        tier = current_user.subscription_tier if hasattr(current_user, 'subscription_tier') else "free"
+        max_accounts = 2 if tier == "free" else (10 if tier == "pro" else 999)
+        if len(accounts) >= max_accounts:
+            return jsonify({"ok": False, "error": f"You reached your limit of {max_accounts} accounts. Upgrade to add more."})
+            
         username = (data.get("username") or "").strip().lower()
         if not username:
             return jsonify({"ok": False, "error": "Username required"})
@@ -320,9 +429,12 @@ def api_accounts():
         # Fetch info
         info = fetch_snapchat_info(username)
         accounts.append({"username": username, "checked": True, "avatar": info.get("avatar")})
-        save_accounts(accounts)
+        save_accounts(accounts, current_user.id)
         
     elif action == "add_bulk":
+        tier = current_user.subscription_tier if hasattr(current_user, 'subscription_tier') else "free"
+        max_accounts = 2 if tier == "free" else (10 if tier == "pro" else 999)
+        
         raw = data.get("usernames") or data.get("text") or ""
         if isinstance(raw, list):
             usernames = [str(u).strip().lower() for u in raw if str(u).strip()]
@@ -332,6 +444,9 @@ def api_accounts():
         added = 0
         skipped = []
         for u in usernames:
+            if len(accounts) >= max_accounts:
+                skipped.append(u)
+                continue
             if any(a.get("username") == u for a in accounts):
                 skipped.append(u)
                 continue
@@ -341,7 +456,7 @@ def api_accounts():
             accounts.append({"username": u, "checked": True, "avatar": info.get("avatar")})
             added += 1
             
-        save_accounts(accounts)
+        save_accounts(accounts, current_user.id)
         return jsonify({
             "ok": True,
             "added": added,
@@ -584,7 +699,7 @@ def youtube_callback():
         return redirect("/?youtube_error=" + str(e).replace(" ", "+"))
 
 
-def _run_upload_all(task_id, folders, privacy, upload_type, channel_id=None):
+def _run_upload_all(task_id, folders, privacy, upload_type, channel_id=None, user_id=""):
     """Upload all merged folders to YouTube."""
     tasks[task_id]["status"] = "running"
     total = len(folders)
@@ -593,6 +708,8 @@ def _run_upload_all(task_id, folders, privacy, upload_type, channel_id=None):
     last_error = None
     try:
         from webapp.youtube_service import upload_from_folder
+        if user_id:
+            os.environ["SNAPSCRAP_USER_ID"] = str(user_id)
         for idx, f in enumerate(folders):
             tasks[task_id]["message"] = f"Uploading {f['username']}/{f['date']} ({idx + 1}/{total})..."
             r = upload_from_folder(f["username"], f["date"], privacy, upload_type, channel_id=channel_id)
@@ -609,10 +726,11 @@ def _run_upload_all(task_id, folders, privacy, upload_type, channel_id=None):
     except Exception as e:
         tasks[task_id]["status"] = "error"
         tasks[task_id]["message"] = str(e)
-
-
+        
+        
 @app.route("/api/upload-all", methods=["POST"])
 def api_upload_all():
+    user_id = current_user.id if current_user and current_user.is_authenticated else ""
     data = request.get_json() or {}
     folders = data.get("folders") or get_merged_folders()
     if not folders:
@@ -624,7 +742,7 @@ def api_upload_all():
     tasks[task_id] = {"status": "pending", "message": "Starting..."}
 
     def _run():
-        _run_upload_all(task_id, folders, privacy, upload_type, channel_id)
+        _run_upload_all(task_id, folders, privacy, upload_type, channel_id, user_id)
 
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"ok": True, "task_id": task_id})
@@ -652,5 +770,5 @@ def api_clear_batch():
 
 
 if __name__ == "__main__":
-    print("\n  SnapScrap Web → http://127.0.0.1:5000\n")
+    print("\n  SnapScrap Web -> http://127.0.0.1:5000\n")
     app.run(debug=True, host="0.0.0.0", port=5000, use_reloader=False)

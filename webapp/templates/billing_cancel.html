@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إلغاء عملية الدفع | SnapScrap</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Tajawal:wght@400;500;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <style>
+        .status-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .status-card {
+            max-width: 500px;
+            padding: 3rem;
+            margin: auto;
+        }
+
+        .icon {
+            font-size: 5rem;
+            color: #ef4444;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="status-container">
+        <div class="status-card glass-panel">
+            <i class="fa-solid fa-circle-xmark icon"></i>
+            <h1 class="section-title mb-4">تم إلغاء العملية</h1>
+            <p class="section-subtitle mb-4">لم يتم خصم أي مبالغ. يمكنك المحاولة مرة أخرى في أي وقت عندما تكون جاهزاً
+                لترقية حسابك.</p>
+            <br>
+            <a href="{{ url_for('dashboard') }}" class="btn-ghost">العودة للوحة التحكم <i
+                    class="fa-solid fa-arrow-left mt-1"></i></a>
+        </div>
+    </div>
+</body>
+
+</html>

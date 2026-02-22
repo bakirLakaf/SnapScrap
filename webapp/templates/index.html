@@ -15,323 +15,346 @@
     <div class="bg-grid"></div>
     <div class="app-layout">
         <aside class="app-sidebar">
-            <div class="sidebar-header">
+            <header class="sidebar-header">
                 <div class="logo-row-small">
-                    <span class="logo-snapchat-small">
-                        <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
-                            <path
-                                d="M12.206.793c.99 0 4.347.276 5.93 3.821.529 1.193.403 3.219.299 4.847l-.003.06c-.012.18-.022.345-.03.51.075.045.203.09.401.09.3-.016.659-.12 1.033-.301.165-.088.344-.104.464-.104.182 0 .359.029.509.09.45.149.734.479.734.838.015.449-.39.839-1.213 1.168-.089.029-.209.075-.344.119-.45.135-1.139.36-1.333.81-.09.224-.061.524.12.868l.015.015c.06.136 1.526 3.475 4.791 4.014.255.044.435.27.42.509 0 .075-.015.149-.045.225-.24.569-1.273.988-3.146 1.271-.059.091-.12.375-.164.57-.029.179-.074.36-.134.553-.076.271-.27.405-.555.405h-.03c-.135 0-.313-.031-.538-.074-.36-.075-.765-.135-1.273-.135-.3 0-.599.015-.913.074-.6.104-1.123.464-1.723.884-.853.599-1.826 1.288-3.294 1.288-.06 0-.119-.015-.18-.015h-.149c-1.468 0-2.427-.675-3.279-1.288-.599-.42-1.107-.779-1.707-.884-.314-.045-.629-.074-.928-.074-.54 0-.958.089-1.272.149-.211.043-.391.074-.54.074-.374 0-.523-.224-.583-.42-.061-.192-.09-.389-.135-.567-.046-.181-.105-.494-.166-.57-1.918-.222-2.95-.642-3.189-1.226-.031-.063-.052-.15-.049-.225-.015-.243.165-.465.42-.509 3.264-.54 4.73-3.879 4.791-4.02l.016-.029c.18-.345.224-.645.119-.869-.195-.434-.884-.658-1.332-.809-.121-.029-.24-.074-.346-.119-1.107-.435-1.257-.93-1.197-1.273.09-.479.674-.793 1.168-.793.146 0 .27.029.383.074.42.194.789.3 1.104.3.234 0 .384-.06.465-.105l-.046-.569c-.098-1.626-.225-3.651.307-4.837C7.392 1.077 10.739.807 11.727.807l.419-.015h.06z" />
-                        </svg>
-                    </span>
+                    <i class="fa-brands fa-snapchat logo-snapchat-small fa-2x"></i>
                     <h2>SnapScrap</h2>
                 </div>
+    </div>
+
+    <div class="sidebar-content">
+        <div class="sidebar-section">
+            <h3>الحسابات المضافة</h3>
+            <div class="accounts-actions-sidebar">
+                <button type="button" id="selectAll" class="btn-link-sm">الكل</button>
+                <button type="button" id="deselectAll" class="btn-link-sm">لا أحد</button>
             </div>
+            <div class="accounts-list sidebar-list" id="accountsList">
+                {% for a in accounts %}
+                <label class="account-item-sidebar">
+                    <input type="checkbox" class="account-check" data-username="{{ a.username }}" {% if a.checked
+                        %}checked{% endif %}>
+                    <span class="account-name">{{ a.username }}</span>
+                    <button type="button" class="btn-remove-sm" data-username="{{ a.username }}" title="حذف">×</button>
+                </label>
+                {% endfor %}
+                <p class="empty-accounts" id="emptyAccounts" style="display:none">لا توجد حسابات</p>
+            </div>
+        </div>
 
-            <div class="sidebar-content">
-                <div class="sidebar-section">
-                    <h3>الحسابات المضافة</h3>
-                    <div class="accounts-actions-sidebar">
-                        <button type="button" id="selectAll" class="btn-link-sm">الكل</button>
-                        <button type="button" id="deselectAll" class="btn-link-sm">لا أحد</button>
-                    </div>
-                    <div class="accounts-list sidebar-list" id="accountsList">
-                        {% for a in accounts %}
-                        <label class="account-item-sidebar">
-                            <input type="checkbox" class="account-check" data-username="{{ a.username }}" {% if
-                                a.checked %}checked{% endif %}>
-                            <span class="account-name">{{ a.username }}</span>
-                            <button type="button" class="btn-remove-sm" data-username="{{ a.username }}"
-                                title="حذف">×</button>
-                        </label>
-                        {% endfor %}
-                        <p class="empty-accounts" id="emptyAccounts" style="display:none">لا توجد حسابات</p>
-                    </div>
-                </div>
+        <div class="sidebar-footer">
+            <label class="toggle sidebar-toggle-item">
+                <input type="checkbox" id="batchMergeSidebar">
+                <span>دمج تلقائي</span>
+            </label>
+            <button type="button" id="downloadSelected" class="btn btn-primary btn-block">
+                تنزيل المحدد
+            </button>
+        </div>
+    </div>
+    </aside>
 
-                <div class="sidebar-footer">
-                    <label class="toggle sidebar-toggle-item">
-                        <input type="checkbox" id="batchMergeSidebar">
-                        <span>دمج تلقائي</span>
-                    </label>
-                    <button type="button" id="downloadSelected" class="btn btn-primary btn-block">
-                        تنزيل المحدد
-                    </button>
+    <main class="app-content">
+        <header class="mobile-header" style="display:none;">
+            <div class="logo-row">
+                <h1>SnapScrap</h1>
+            </div>
+        </header>
+
+        <!-- Stripe Upgrade Banner -->
+        {% if current_user.subscription_tier == 'free' %}
+        <div class="upgrade-banner"
+            style="background: linear-gradient(135deg, #8b5cf6, #d946ef); padding: 18px 24px; border-radius: 16px; margin-bottom: 24px; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(217, 70, 239, 0.2);">
+            <div>
+                <h3 style="margin:0 0 5px 0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-crown" style="color: #fbbf24;"></i> الباقة المجانية
+                </h3>
+                <p style="margin:0; font-size:0.9rem; opacity:0.9;">أنت حالياً تستخدم الباقة المجانية بحد أقصى (2)
+                    حسابات. للوصول لعدد أكبر وجدولة أسرع وجيش API، قم بالترقية للـ Pro.</p>
+            </div>
+            <button onclick="checkoutStripe('pro')"
+                style="background: white; color: #8b5cf6; border: none; padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 700; font-family: 'Tajawal', sans-serif; transition: transform 0.2s;">
+                ترقية إلى Pro
+            </button>
+        </div>
+        <script>
+            function checkoutStripe(tier) {
+                fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tier: tier })
+                }).then(res => res.json()).then(data => {
+                    if (data.checkout_url) window.location.href = data.checkout_url;
+                    else alert(data.error);
+                }).catch(console.error);
+            }
+        </script>
+        {% endif %}
+
+        <!-- Add Accounts -->
+        <section class="card accounts-card">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon">➕</span>
+                    <h2>إضافة حسابات</h2>
                 </div>
             </div>
-        </aside>
-
-        <main class="app-content">
-            <header class="mobile-header" style="display:none;">
-                <div class="logo-row">
-                    <h1>SnapScrap</h1>
+            <form id="addAccountForm" class="form-add-accounts">
+                <div class="input-row">
+                    <input type="text" id="newAccountInput" placeholder="أدخل اسم المستخدم (مثال: dary_1256)">
                 </div>
-            </header>
+                <textarea id="newAccounts" placeholder="أو أضف حسابات متعددة (كل حساب في سطر)" rows="3"
+                    style="display:none"></textarea>
 
-            <!-- Add Accounts -->
-            <section class="card accounts-card">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon">➕</span>
-                        <h2>إضافة حسابات</h2>
-                    </div>
+                <div class="add-actions-row">
+                    <button type="submit" id="submitAddBtn" class="btn btn-secondary">إضافة</button>
+                    <button type="button" id="toggleBulkAdd" class="btn-link">إضافة جملة / حساب واحد</button>
                 </div>
-                <form id="addAccountForm" class="form-add-accounts">
-                    <div class="input-row">
-                        <input type="text" id="newAccountInput" placeholder="أدخل اسم المستخدم (مثال: dary_1256)">
-                    </div>
-                    <textarea id="newAccounts" placeholder="أو أضف حسابات متعددة (كل حساب في سطر)" rows="3"
-                        style="display:none"></textarea>
+            </form>
 
-                    <div class="add-actions-row">
-                        <button type="submit" id="submitAddBtn" class="btn btn-secondary">إضافة</button>
-                        <button type="button" id="toggleBulkAdd" class="btn-link">إضافة جملة / حساب واحد</button>
-                    </div>
-                </form>
-
-                <div class="suggested-section">
-                    <div class="suggested-header" id="suggestedHeader" style="cursor: pointer;">
-                        <span id="suggestedToggleIcon">▼</span>
-                        <span>حسابات مقترحة</span>
-                        <button type="button" id="refreshSuggested" class="btn-link btn-refresh" title="تحديث"
-                            style="margin-right: auto;">↻</button>
-                    </div>
-                    <div class="suggested-list" id="suggestedList"></div>
-                    <button type="button" id="addSelectedSuggested" class="btn btn-secondary btn-sm">إضافة
-                        المحدد</button>
+            <div class="suggested-section">
+                <div class="suggested-header" id="suggestedHeader" style="cursor: pointer;">
+                    <span id="suggestedToggleIcon">▼</span>
+                    <span>حسابات مقترحة</span>
+                    <button type="button" id="refreshSuggested" class="btn-link btn-refresh" title="تحديث"
+                        style="margin-right: auto;">↻</button>
                 </div>
-            </section>
+                <div class="suggested-list" id="suggestedList"></div>
+                <button type="button" id="addSelectedSuggested" class="btn btn-secondary btn-sm">إضافة
+                    المحدد</button>
+            </div>
+        </section>
 
-            <!-- Quick Download -->
-            <section class="card download-card">
-                <div class="card-header">
-                    <h2>تنزيل سريع</h2>
-                    <p>دون إضافة للقائمة</p>
-                </div>
-                <form id="downloadForm" class="form">
-                    <div class="input-group">
-                        <input type="text" id="username" placeholder="اسم المستخدم">
-                        <label class="toggle">
-                            <input type="checkbox" id="mergeAfter">
-                            <span>دمج بعد التحميل</span>
-                        </label>
-                    </div>
-                    <button type="submit" class="btn btn-secondary">تنزيل</button>
-                </form>
-            </section>
-
-            <!-- Merge -->
-            <section class="card merge-card">
-                <div class="card-header">
-                    <h2>دمج الفيديوهات</h2>
-                </div>
-                <form id="mergeForm" class="form">
-                    <div class="input-row">
-                        <input type="text" id="mergeUsername" placeholder="اسم المستخدم">
-                        <input type="date" id="mergeDate">
-                    </div>
-                    <div class="merge-mode" style="display:none;">
-                        <label class="radio"><input type="radio" name="mergeMode" value="shorts" checked> Shorts</label>
-                    </div>
-                    <button type="submit" class="btn btn-secondary">دمج</button>
-                </form>
-            </section>
-
-            <!-- Schedule -->
-            <section class="card schedule-card">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon">⏰</span>
-                        <h2>جدولة</h2>
-                    </div>
-                </div>
-                <form id="scheduleForm" class="form">
-                    <label class="toggle big">
-                        <input type="checkbox" id="scheduleEnabled" {% if schedule.enabled %}checked{% endif %}>
-                        <span>تفعيل الجدولة اليومية</span>
-                    </label>
-                    <div class="schedule-time">
-                        <input type="number" id="scheduleHour" min="0" max="23" value="{{ schedule.get('hour', 9) }}">
-                        <span>:</span>
-                        <input type="number" id="scheduleMinute" min="0" max="59"
-                            value="{{ schedule.get('minute', 0) }}">
-                    </div>
-                    <p class="next-run" id="nextRun"></p>
+        <!-- Quick Download -->
+        <section class="card download-card">
+            <div class="card-header">
+                <h2>تنزيل سريع</h2>
+                <p>دون إضافة للقائمة</p>
+            </div>
+            <form id="downloadForm" class="form">
+                <div class="input-group">
+                    <input type="text" id="username" placeholder="اسم المستخدم">
                     <label class="toggle">
-                        <input type="checkbox" id="scheduleMerge" {% if schedule.merge %}checked{% endif %}>
-                        <span>دمج تلقائي</span>
+                        <input type="checkbox" id="mergeAfter">
+                        <span>دمج بعد التحميل</span>
                     </label>
-                    <button type="submit" class="btn btn-secondary">حفظ</button>
-                </form>
-            </section>
+                </div>
+                <button type="submit" class="btn btn-secondary">تنزيل</button>
+            </form>
+        </section>
 
-            <!-- Upload -->
-            <section class="card upload-card highlight">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon icon-yt">▶</span>
-                        <h2>YouTube Upload</h2>
-                    </div>
+        <!-- Merge -->
+        <section class="card merge-card">
+            <div class="card-header">
+                <h2>دمج الفيديوهات</h2>
+            </div>
+            <form id="mergeForm" class="form">
+                <div class="input-row">
+                    <input type="text" id="mergeUsername" placeholder="اسم المستخدم">
+                    <input type="date" id="mergeDate">
                 </div>
-                <div class="upload-tabs">
-                    <button type="button" class="tab active" data-tab="folder">مجلد</button>
-                    <button type="button" class="tab" data-tab="file">ملف</button>
+                <div class="merge-mode" style="display:none;">
+                    <label class="radio"><input type="radio" name="mergeMode" value="shorts" checked> Shorts</label>
                 </div>
-                <div id="uploadFolder" class="tab-content active">
-                    <div class="refresh-row channels-row">
-                        <button type="button" id="refreshMerged" class="btn-link btn-refresh">↻ مجلدات</button>
-                        <span>|</span>
-                        <button type="button" id="refreshChannels" class="btn-link btn-refresh">↻ قنوات</button>
-                        <a href="/youtube/connect" id="addChannel" class="btn-link">+ قناة</a>
-                    </div>
-                    <div class="channel-select-row">
-                        <select id="uploadChannel">
-                            <option value="">اختر القناة</option>
+                <button type="submit" class="btn btn-secondary">دمج</button>
+            </form>
+        </section>
+
+        <!-- Schedule -->
+        <section class="card schedule-card">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon">⏰</span>
+                    <h2>جدولة</h2>
+                </div>
+            </div>
+            <form id="scheduleForm" class="form">
+                <label class="toggle big">
+                    <input type="checkbox" id="scheduleEnabled" {% if schedule.enabled %}checked{% endif %}>
+                    <span>تفعيل الجدولة اليومية</span>
+                </label>
+                <div class="schedule-time">
+                    <input type="number" id="scheduleHour" min="0" max="23" value="{{ schedule.get('hour', 9) }}">
+                    <span>:</span>
+                    <input type="number" id="scheduleMinute" min="0" max="59" value="{{ schedule.get('minute', 0) }}">
+                </div>
+                <p class="next-run" id="nextRun"></p>
+                <label class="toggle">
+                    <input type="checkbox" id="scheduleMerge" {% if schedule.merge %}checked{% endif %}>
+                    <span>دمج تلقائي</span>
+                </label>
+                <button type="submit" class="btn btn-secondary">حفظ</button>
+            </form>
+        </section>
+
+        <!-- Upload -->
+        <section class="card upload-card highlight">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon icon-yt">▶</span>
+                    <h2>YouTube Upload</h2>
+                </div>
+            </div>
+            <div class="upload-tabs">
+                <button type="button" class="tab active" data-tab="folder">مجلد</button>
+                <button type="button" class="tab" data-tab="file">ملف</button>
+            </div>
+            <div id="uploadFolder" class="tab-content active">
+                <div class="refresh-row channels-row">
+                    <button type="button" id="refreshMerged" class="btn-link btn-refresh">↻ مجلدات</button>
+                    <span>|</span>
+                    <button type="button" id="refreshChannels" class="btn-link btn-refresh">↻ قنوات</button>
+                    <a href="/youtube/connect" id="addChannel" class="btn-link">+ قناة</a>
+                </div>
+                <div class="channel-select-row">
+                    <select id="uploadChannel">
+                        <option value="">اختر القناة</option>
+                    </select>
+                </div>
+                <p class="youtube-channels" id="youtubeChannels"></p>
+                <form id="uploadForm" class="form">
+                    <div class="input-row">
+                        <select id="uploadUsername">
+                            <option value="">اختر المجلد</option>
+                            <option value="__manual__">يدوي</option>
+                            {% for f in merged_folders %}
+                            <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date
+                                }}</option>
+                            {% endfor %}
                         </select>
-                    </div>
-                    <p class="youtube-channels" id="youtubeChannels"></p>
-                    <form id="uploadForm" class="form">
-                        <div class="input-row">
-                            <select id="uploadUsername">
-                                <option value="">اختر المجلد</option>
-                                <option value="__manual__">يدوي</option>
-                                {% for f in merged_folders %}
-                                <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date
-                                    }}</option>
-                                {% endfor %}
-                            </select>
-                            <div id="manualUpload" class="manual-row" style="display:none">
-                                <input type="text" id="uploadUsernameManual" placeholder="User">
-                                <input type="text" id="uploadDateManual" placeholder="Date">
-                            </div>
-                            <input type="hidden" id="uploadDate">
-                            <select id="uploadPrivacy">
-                                <option value="private">خاص</option>
-                                <option value="unlisted">غير مدرج</option>
-                                <option value="public">عام</option>
-                            </select>
-                            <select id="uploadType" style="display:none;">
-                                <option value="shorts" selected>Shorts</option>
-                            </select>
+                        <div id="manualUpload" class="manual-row" style="display:none">
+                            <input type="text" id="uploadUsernameManual" placeholder="User">
+                            <input type="text" id="uploadDateManual" placeholder="Date">
                         </div>
-                        <button type="submit" class="btn btn-accent">رفع المحدد</button>
-                    </form>
-                </div>
-                <div id="uploadFile" class="tab-content">
-                    <form id="uploadFileForm" class="form">
-                        <div class="file-drop" id="fileDrop">
-                            <input type="file" id="videoFile" accept="video/*" hidden>
-                            <p class="file-drop-text">اسحب ملف هنا</p>
-                            <p class="file-selected" id="fileSelected" style="display:none"></p>
-                        </div>
-                        <input type="text" id="uploadTitle" placeholder="العنوان">
-                        <select id="uploadFileChannel">
-                            <option value="">اختر القناة</option>
-                        </select>
-                        <select id="uploadFilePrivacy">
+                        <input type="hidden" id="uploadDate">
+                        <select id="uploadPrivacy">
                             <option value="private">خاص</option>
                             <option value="unlisted">غير مدرج</option>
                             <option value="public">عام</option>
                         </select>
-                        <button type="submit" class="btn btn-accent">رفع YouTube</button>
-                    </form>
-                </div>
-            </section>
-
-            <!-- YouTube Bulk Upload Card -->
-            <section class="card bulk-card highlight">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon icon-yt">▶</span>
-                        <h2>رفع الكل (Bulk Upload)</h2>
-                    </div>
-                    <p>رفع جميع المجلدات الجاهزة وتوزيعها على القنوات</p>
-                </div>
-                <div class="form">
-                    <div class="input-row">
-                        <select id="bulkUploadChannel">
-                            <option value="">اختر القناة (مهم: اختر Content Creators Stories)</option>
+                        <select id="uploadType" style="display:none;">
+                            <option value="shorts" selected>Shorts</option>
                         </select>
                     </div>
-                    <button type="button" id="uploadAll" class="btn btn-primary"
-                        style="background-color: var(--yt-red); color: white;">بدء الرفع الشامل</button>
-                </div>
-            </section>
-
-            <!-- TikTok -->
-            <section class="card tiktok-card">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon">📱</span>
-                        <h2>TikTok Upload</h2>
+                    <button type="submit" class="btn btn-accent">رفع المحدد</button>
+                </form>
+            </div>
+            <div id="uploadFile" class="tab-content">
+                <form id="uploadFileForm" class="form">
+                    <div class="file-drop" id="fileDrop">
+                        <input type="file" id="videoFile" accept="video/*" hidden>
+                        <p class="file-drop-text">اسحب ملف هنا</p>
+                        <p class="file-selected" id="fileSelected" style="display:none"></p>
                     </div>
-                </div>
-                <div class="tiktok-content">
-                    <p class="tiktok-info">مساعد الرفع اليدوي (Manual Bridge)</p>
-                    <div class="form">
-                        <div class="input-row">
-                            <select id="tiktokFolder">
-                                <option value="">اختر المجلد</option>
-                                {% for f in merged_folders %}
-                                <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date
-                                    }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <input type="text" id="uploadTitle" placeholder="العنوان">
+                    <select id="uploadFileChannel">
+                        <option value="">اختر القناة</option>
+                    </select>
+                    <select id="uploadFilePrivacy">
+                        <option value="private">خاص</option>
+                        <option value="unlisted">غير مدرج</option>
+                        <option value="public">عام</option>
+                    </select>
+                    <button type="submit" class="btn btn-accent">رفع YouTube</button>
+                </form>
+            </div>
+        </section>
 
-                        <div class="manual-bridge-actions">
-                            <div class="action-step">
-                                <span class="step-num">1</span>
-                                <button type="button" id="copyCaptionBtn" class="btn btn-secondary btn-sm btn-block">نسخ
-                                    العنوان</button>
-                            </div>
-                            <div class="action-step">
-                                <span class="step-num">2</span>
-                                <button type="button" id="openFolderBtn" class="btn btn-secondary btn-sm btn-block">فتح
-                                    المجلد</button>
-                            </div>
-                            <div class="action-step">
-                                <span class="step-num">3</span>
-                                <button type="button" class="btn btn-accent btn-sm btn-block"
-                                    onclick="window.open('https://www.tiktok.com/upload', '_blank')">فتح TikTok</button>
-                            </div>
-                        </div>
-                    </div>
+        <!-- YouTube Bulk Upload Card -->
+        <section class="card bulk-card highlight">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon icon-yt">▶</span>
+                    <h2>رفع الكل (Bulk Upload)</h2>
                 </div>
-            </section>
+                <p>رفع جميع المجلدات الجاهزة وتوزيعها على القنوات</p>
+            </div>
+            <div class="form">
+                <div class="input-row">
+                    <select id="bulkUploadChannel">
+                        <option value="">اختر القناة (مهم: اختر Content Creators Stories)</option>
+                    </select>
+                </div>
+                <button type="button" id="uploadAll" class="btn btn-primary"
+                    style="background-color: var(--yt-red); color: white;">بدء الرفع الشامل</button>
+            </div>
+        </section>
 
-            <!-- Clear batch -->
-            <section class="card clear-card">
-                <div class="card-header">
-                    <h2>تنظيف</h2>
+        <!-- TikTok -->
+        <section class="card tiktok-card">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon">📱</span>
+                    <h2>TikTok Upload</h2>
                 </div>
+            </div>
+            <div class="tiktok-content">
+                <p class="tiktok-info">مساعد الرفع اليدوي (Manual Bridge)</p>
                 <div class="form">
                     <div class="input-row">
-                        <select id="clearFolder">
+                        <select id="tiktokFolder">
                             <option value="">اختر المجلد</option>
                             {% for f in merged_folders %}
-                            <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date }}
-                            </option>
+                            <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date
+                                }}</option>
                             {% endfor %}
                         </select>
-                        <button type="button" id="clearBatchBtn" class="btn btn-secondary">حذف</button>
+                    </div>
+
+                    <div class="manual-bridge-actions">
+                        <div class="action-step">
+                            <span class="step-num">1</span>
+                            <button type="button" id="copyCaptionBtn" class="btn btn-secondary btn-sm btn-block">نسخ
+                                العنوان</button>
+                        </div>
+                        <div class="action-step">
+                            <span class="step-num">2</span>
+                            <button type="button" id="openFolderBtn" class="btn btn-secondary btn-sm btn-block">فتح
+                                المجلد</button>
+                        </div>
+                        <div class="action-step">
+                            <span class="step-num">3</span>
+                            <button type="button" class="btn btn-accent btn-sm btn-block"
+                                onclick="window.open('https://www.tiktok.com/upload', '_blank')">فتح TikTok</button>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <section class="status-section" id="statusSection">
-                <div class="status-card" id="statusCard">
-                    <div class="status-icon" id="statusIcon">◇</div>
-                    <div class="status-text">
-                        <strong id="statusTitle"></strong>
-                        <span id="statusMessage"></span>
-                    </div>
+        <!-- Clear batch -->
+        <section class="card clear-card">
+            <div class="card-header">
+                <h2>تنظيف</h2>
+            </div>
+            <div class="form">
+                <div class="input-row">
+                    <select id="clearFolder">
+                        <option value="">اختر المجلد</option>
+                        {% for f in merged_folders %}
+                        <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" id="clearBatchBtn" class="btn btn-secondary">حذف</button>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <footer>
-                <p class="copyright">SnapScrap © 2026</p>
-            </footer>
-        </main>
+        <section class="status-section" id="statusSection">
+            <div class="status-card" id="statusCard">
+                <div class="status-icon" id="statusIcon">◇</div>
+                <div class="status-text">
+                    <strong id="statusTitle"></strong>
+                    <span id="statusMessage"></span>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p class="copyright">SnapScrap © 2026</p>
+        </footer>
+    </main>
     </div>
 
     <script>
