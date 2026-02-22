@@ -361,11 +361,15 @@ def register():
             flash("اسم المستخدم محجوز، اختر اسماً آخر", "danger")
             return redirect(url_for("register"))
         
-        user = User(username=username, password_hash=generate_password_hash(password))
-        db.session.add(user)
-        db.session.commit()
-        login_user(user)
-        return redirect(url_for("dashboard"))
+        try:
+            user = User(username=username, password_hash=generate_password_hash(password))
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+            return redirect(url_for("dashboard"))
+        except Exception as e:
+            flash(f"Error: {str(e)}", "danger")
+            return redirect(url_for("register"))
     return render_template("auth.html", mode="register")
 
 @app.route("/login", methods=["GET", "POST"])
