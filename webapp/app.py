@@ -65,8 +65,25 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# Auto-Migration for V2 SQLite (Add new columns without dropping data)
 with app.app_context():
     db.create_all()
+    try:
+        from sqlalchemy import text
+        # Attempt to query the newly added V2 columns
+        db.session.execute(text("SELECT stripe_customer_id FROM user LIMIT 1"))
+    except Exception:
+        db.session.rollback()
+        print("Migrating local database: Adding stripe_customer_id, subscription_tier, and created_at to User table...")
+        try:
+            db.session.execute(text("ALTER TABLE user ADD COLUMN subscription_tier VARCHAR(50) DEFAULT 'free'"))
+            db.session.execute(text("ALTER TABLE user ADD COLUMN stripe_customer_id VARCHAR(255)"))
+            db.session.execute(text("ALTER TABLE user ADD COLUMN created_at DATETIME"))
+            db.session.commit()
+            print("Migration successful.")
+        except Exception as e:
+            db.session.rollback()
+            print("Migration failed (columns might already exist or DB is locked):", e)
 
 @app.before_request
 def require_login():
