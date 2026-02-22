@@ -33,6 +33,28 @@ app.config["UPLOAD_FOLDER"].mkdir(exist_ok=True)
 
 app.register_blueprint(billing_bp)
 
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+app.config["WTF_CSRF_SECRET_KEY"] = os.environ.get("FLASK_CSRF_SECRET_KEY", "csrf-token-secret-xyz-444")
+csrf = CSRFProtect(app)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["1000 per day", "100 per hour"],
+    storage_uri="memory://"
+)
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
+
 db.init_app(app)
 
 login_manager = LoginManager()
@@ -348,6 +370,7 @@ def fetch_snapchat_info(username):
         return {}
 
 @app.route("/register", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def register():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
@@ -373,6 +396,7 @@ def register():
     return render_template("auth.html", mode="register")
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
@@ -399,6 +423,47 @@ def landing():
         return redirect(url_for("dashboard"))
     return render_template("landing.html")
 
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.username not in ["bakir", "testadmin"]:
+            flash("غير مصرح لك بالدخول إلى لوحة التحكم", "danger")
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    from webapp.models import User, ConnectedChannel
+    users = User.query.all()
+    channel_count = ConnectedChannel.query.count()
+    return render_template("admin.html", users=users, total_channels=channel_count)
+
+@app.route("/admin/user/<int:user_id>/tier", methods=["POST"])
+@admin_required
+def admin_change_tier(user_id):
+    from webapp.models import User
+    user = User.query.get_or_404(user_id)
+    new_tier = request.form.get("tier")
+    if new_tier in ["free", "pro", "enterprise"]:
+        user.subscription_tier = new_tier
+        db.session.commit()
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/admin/user/<int:user_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_user(user_id):
+    from webapp.models import User, ConnectedChannel
+    user = User.query.get_or_404(user_id)
+    if user.username not in ["bakir", "testadmin"]:
+        ConnectedChannel.query.filter_by(user_id=user.id).delete()
+        db.session.delete(user)
+        db.session.commit()
+    return redirect(url_for('admin_dashboard'))
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -421,7 +486,60 @@ def dashboard():
     )
 
 
-@app.route("/api/accounts", methods=["GET", "POST"])
+@app.route("/api/download_single_story", methods=["POST"])
+@login_required
+@limiter.limit("10 per minute")
+def api_download_single_story():
+    url = request.json.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "رابط القصة مطلوب"})
+    
+    try:
+        import requests, json, re
+        from bs4 import BeautifulSoup
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        
+        if "t.snapchat.com" in url:
+            r = requests.get(url, allow_redirects=True, timeout=10)
+            url = r.url
+            
+        r = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(r.content, "html.parser")
+        next_data = soup.find(id="__NEXT_DATA__")
+        if not next_data:
+            return jsonify({"error": "لم يتم العثور على بيانات سناب شات من الرابط."})
+            
+        media_url = None
+        match = re.search(r'"mediaUrl":\s*"([^"]+)"', next_data.string)
+        if match:
+            media_url = match.group(1)
+        
+        if not media_url:
+            return jsonify({"error": "الرابط لا يحتوي على ميديا متاحة"})
+            
+        # Download temp file
+        import tempfile
+        r = requests.get(media_url, stream=True, headers=headers)
+        ext = ".mp4" if "video" in r.headers.get('Content-Type', '') else ".jpeg"
+        fd, path = tempfile.mkstemp(suffix=ext)
+        with os.fdopen(fd, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024*1024):
+                f.write(chunk)
+                
+        return jsonify({"success": True, "download_url": url_for('serve_single_download', path=path, _external=True)})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route("/download_temp")
+@login_required
+def serve_single_download():
+    path = request.args.get("path")
+    if path and os.path.exists(path):
+        from flask import send_file
+        return send_file(path, as_attachment=True, download_name=f"snapchat_story{os.path.splitext(path)[1]}")
+    return "File not found", 404
+
+@app.route("/api/accounts", methods=["GET", "POST", "DELETE"])
 def api_accounts():
     if request.method == "GET":
         return jsonify(get_accounts())

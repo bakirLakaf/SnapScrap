@@ -1,4 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const originalFetch = window.fetch;
+  window.fetch = async function () {
+    let [resource, config] = arguments;
+    if (config && (config.method === 'POST' || config.method === 'PUT' || config.method === 'DELETE')) {
+      config.headers = config.headers || {};
+      if (csrfToken) config.headers['X-CSRFToken'] = csrfToken;
+    }
+    return originalFetch.apply(this, arguments);
+  };
+
   const today = new Date().toISOString().slice(0, 10);
   const mergeDateEl = document.getElementById('mergeDate');
   if (mergeDateEl) mergeDateEl.value = today;
@@ -481,19 +492,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const sel3 = document.getElementById('bulkUploadChannel');
 
     [sel1, sel2, sel3].forEach(sel => {
-        if (sel) {
-            const v = sel.value;
-            sel.innerHTML = opts;
-            if (v) sel.value = v;
+      if (sel) {
+        const v = sel.value;
+        sel.innerHTML = opts;
+        if (v) sel.value = v;
 
-            // Auto-select 'Content Creators Stories' for bulk upload by default
-            if (sel.id === 'bulkUploadChannel' && !v && channels) {
-                const targetChannel = channels.find(c => c.title.toLowerCase().includes("content creators stories") || c.title.toLowerCase().includes("stories"));
-                if (targetChannel) {
-                    sel.value = targetChannel.id;
-                }
-            }
+        // Auto-select 'Content Creators Stories' for bulk upload by default
+        if (sel.id === 'bulkUploadChannel' && !v && channels) {
+          const targetChannel = channels.find(c => c.title.toLowerCase().includes("content creators stories") || c.title.toLowerCase().includes("stories"));
+          if (targetChannel) {
+            sel.value = targetChannel.id;
+          }
         }
+      }
     });
   }
 

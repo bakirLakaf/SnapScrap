@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>SaaS Admin - SnapScrap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .admin-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            color: white;
+        }
+
+        .admin-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: right;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            color: var(--accent);
+        }
+
+        .tier-select {
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .btn-danger {
+            background: #ff4d4d;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>لوحة الإدارة 👑</h1>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">العودة للتطبيق</a>
+        </div>
+
+        <div class="admin-card text-center">
+            <h3>إحصائيات المنصة</h3>
+            <p><strong>إجمالي المشتركين:</strong> {{ users|length }} مستخدم</p>
+            <p><strong>قنوات اليوتيوب المرتبطة:</strong> {{ total_channels }} قناة</p>
+        </div>
+
+        <div class="admin-card">
+            <h3>إدارة المشتركين</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>المستخدم</th>
+                        <th>الباقة (Tier)</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>تحديث الباقة</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.username }} {% if u.username == current_user.username %}(أنت){% endif %}</td>
+                        <td>{{ u.subscription_tier }}</td>
+                        <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <form action="{{ url_for('admin_change_tier', user_id=u.id) }}" method="POST"
+                                style="display:flex;gap:10px;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <select name="tier" class="tier-select">
+                                    <option value="free" {% if u.subscription_tier=='free' %}selected{% endif %}>مبتدئ
+                                        (Free)</option>
+                                    <option value="pro" {% if u.subscription_tier=='pro' %}selected{% endif %}>البرو
+                                        (Pro)</option>
+                                    <option value="enterprise" {% if u.subscription_tier=='enterprise' %}selected{%
+                                        endif %}>المشروع (Enterprise)</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary" style="padding:0.5rem 1rem;">حفظ</button>
+                            </form>
+                        </td>
+                        <td>
+                            {% if u.username not in ['bakir', 'testadmin'] %}
+                            <form action="{{ url_for('admin_delete_user', user_id=u.id) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit" class="btn btn-danger"
+                                    onclick="return confirm('تأكيد حذف الحساب نهائياً؟');">حذف</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>

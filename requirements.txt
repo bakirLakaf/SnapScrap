@@ -11,3 +11,6 @@ Flask-Login
 Flask-SQLAlchemy
 Flask-Migrate
 bcrypt
+
+Flask-WTF==1.2.1
+Flask-Limiter==3.8.0

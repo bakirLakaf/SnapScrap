@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SnapScrap — تنزيل ورفع Stories</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,6 +21,15 @@
                     <i class="fa-brands fa-snapchat logo-snapchat-small fa-2x"></i>
                     <h2>SnapScrap</h2>
                 </div>
+                <div id="google_translate_element" style="margin-top: 10px;"></div>
+                <script type="text/javascript">
+                    function googleTranslateElementInit() {
+                        new google.translate.TranslateElement({ pageLanguage: 'ar', includedLanguages: 'ar,en,fr', layout: google.translate.TranslateElement.InlineLayout.SIMPLE }, 'google_translate_element');
+                    }
+                </script>
+                <script type="text/javascript"
+                    src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+            </header>
     </div>
 
     <div class="sidebar-content">
@@ -50,6 +60,11 @@
             <button type="button" id="downloadSelected" class="btn btn-primary btn-block">
                 تنزيل المحدد
             </button>
+            {% if current_user.username in ['bakir', 'testadmin'] %}
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-block" style="margin-top:10px;">
+                لوحة الإدارة 👑
+            </a>
+            {% endif %}
         </div>
     </div>
     </aside>
@@ -90,6 +105,25 @@
             }
         </script>
         {% endif %}
+
+        <!-- Quick Downloader -->
+        <section class="card" style="margin-bottom: 24px; background: rgba(0,0,0,0.3); border-color: var(--accent);">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon">⚡</span>
+                    <h2>تنزيل قصة فورياً</h2>
+                </div>
+            </div>
+            <div class="form input-row" style="margin-top: 15px; display:flex;">
+                <input type="text" id="quickDownloadUrl" placeholder="أدخل رابط قصة سناب شات (snapchat.com/t/...)"
+                    style="flex:1;">
+                <button type="button" class="btn btn-primary" id="btnQuickDownload"
+                    style="white-space:nowrap; margin-right: 10px;">
+                    <i class="fa-solid fa-download"></i> تنزيل
+                </button>
+            </div>
+            <p id="quickDownloadStatus" style="margin-top:10px; font-size: 0.9rem;"></p>
+        </section>
 
         <!-- Add Accounts -->
         <section class="card accounts-card">
