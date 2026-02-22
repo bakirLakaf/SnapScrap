@@ -325,6 +325,42 @@
                     لن تتوقف الرفوعات أبداً. أضف مفاتيح احتياطية (tokens) لكل قناة، وسيقوم النظام بتدويرها تلقائياً عند
                     نفاذ الحصة (Quota 403).
                 </p>
+                <button type="button" class="btn btn-secondary btn-sm"
+                    onclick="document.getElementById('secretFileInput').click()" style="margin-top: 10px;">
+                    <i class="fa-solid fa-upload"></i> رفع ملف Client Secret جديد (Google Project)
+                </button>
+                <form id="secretUploadForm" style="display: none;" enctype="multipart/form-data">
+                    <input type="file" id="secretFileInput" name="secret_file" accept=".json"
+                        onchange="submitSecretUpload()">
+                </form>
+                <script>
+                    function submitSecretUpload() {
+                        const fileInput = document.getElementById('secretFileInput');
+                        if (!fileInput.files.length) return;
+
+                        const formData = new FormData();
+                        formData.append('secret_file', fileInput.files[0]);
+
+                        fetch('/api/youtube/upload_client_secret', {
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+                            body: formData
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.ok) {
+                                    alert('تم رفع مشروع جوجل (Client Secret) بنجاح! يمكن للنظام استخدامه في الرفوعات القادمة.');
+                                } else {
+                                    alert('خطأ: ' + (data.error || "تأكد من اختيار ملف صحیح"));
+                                }
+                                fileInput.value = "";
+                            })
+                            .catch(err => {
+                                console.error(err);
+                                alert('حدث خطأ أثناء الرفع');
+                            });
+                    }
+                </script>
             </div>
 
             <div class="army-list" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">

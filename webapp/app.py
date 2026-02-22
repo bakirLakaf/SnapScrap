@@ -883,6 +883,30 @@ def api_youtube_upload_token():
         return jsonify({"ok": False, "error": str(e)})
 
 
+@app.route("/api/youtube/upload_client_secret", methods=["POST"])
+@login_required
+def api_youtube_upload_client_secret():
+    try:
+        if 'secret_file' not in request.files:
+            return jsonify({"ok": False, "error": "No file part"})
+        file = request.files['secret_file']
+        if file.filename == '':
+            return jsonify({"ok": False, "error": "No selected file"})
+            
+        if not file.filename.endswith(".json"):
+            return jsonify({"ok": False, "error": "Only .json files are allowed"})
+
+        import time
+        ts = int(time.time())
+        filename = f"client_secret_{ts}.json"
+        save_path = BASE_DIR / filename
+        file.save(str(save_path))
+        
+        return jsonify({"ok": True, "filename": filename})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
 @app.route("/youtube/connect")
 def youtube_connect():
     """Redirect to Google OAuth to add a new channel."""
