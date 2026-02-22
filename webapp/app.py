@@ -398,11 +398,22 @@ def landing():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    from webapp.youtube_service import get_youtube_channels_config, _get_all_tokens_for_channel
+    
+    raw_channels = get_youtube_channels_config(current_user.id)
+    enriched_channels = []
+    for c in raw_channels:
+        ch_id = c.get("id")
+        tokens = _get_all_tokens_for_channel(ch_id, current_user.id)
+        c["token_count"] = len(tokens)
+        enriched_channels.append(c)
+
     return render_template(
         "index.html",
         merged_folders=get_merged_folders(),
         accounts=get_accounts(),
         schedule=get_schedule(),
+        youtube_channels=enriched_channels
     )
 
 
@@ -659,6 +670,36 @@ def api_youtube_refresh():
         return jsonify(refresh_channels())
     except Exception as e:
         return jsonify({"ok": False, "error": str(e), "channels": []})
+
+
+@app.route("/api/youtube/upload_token", methods=["POST"])
+@login_required
+def api_youtube_upload_token():
+    try:
+        if 'token_file' not in request.files:
+            return jsonify({"ok": False, "error": "No file part"})
+        file = request.files['token_file']
+        channel_id = request.form.get("channel_id")
+        if file.filename == '' or not channel_id:
+            return jsonify({"ok": False, "error": "No selected file or channel"})
+            
+        if not file.filename.endswith(".json"):
+            return jsonify({"ok": False, "error": "Only .json files are allowed"})
+
+        from webapp.youtube_service import get_tokens_dir, _safe_channel_id
+        import time
+        
+        tdir = get_tokens_dir(current_user.id)
+        safe_id = _safe_channel_id(channel_id)
+        ts = int(time.time())
+        
+        filename = f"token_{safe_id}_reserve_{ts}.json"
+        save_path = tdir / filename
+        file.save(str(save_path))
+        
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
 
 
 @app.route("/youtube/connect")

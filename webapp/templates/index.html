@@ -280,6 +280,90 @@
             </div>
         </section>
 
+        <!-- Army of APIs Manager -->
+        <section class="card army-card">
+            <div class="card-header" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                <div class="header-icons">
+                    <span class="icon" style="color: #fffc00;">🛡️</span>
+                    <h2>إدارة جيش المفاتيح</h2>
+                </div>
+                <p style="font-size: 0.85rem; color: #a0a0b0; margin:0;">
+                    لن تتوقف الرفوعات أبداً. أضف مفاتيح احتياطية (tokens) لكل قناة، وسيقوم النظام بتدويرها تلقائياً عند
+                    نفاذ الحصة (Quota 403).
+                </p>
+            </div>
+
+            <div class="army-list" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                {% for channel in youtube_channels %}
+                <div class="army-item"
+                    style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.5rem; color: #ff0000;"><i class="fa-brands fa-youtube"></i></span>
+                        <div>
+                            <strong style="display: block; font-size: 1rem;">{{ channel.title }}</strong>
+                            <small style="color: #a0a0b0;">{{ channel.id }}</small>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="token-badge"
+                            style="background: rgba(0, 230, 118, 0.1); color: #00E676; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(0, 230, 118, 0.3);">
+                            <i class="fa-solid fa-key"></i> {{ channel.token_count }} مفاتيح احتياطية
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm"
+                            onclick="showTokenUpload('{{ channel.id }}')"
+                            style="padding: 6px 12px; font-size: 0.85rem; border-radius: 8px;">
+                            + إضافة مفتاح
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align: center; color: #a0a0b0; padding: 20px;">
+                    لا توجد قنوات يوتيوب مرتبطة بعد. قم بإضافة قناة من قائمة الرفع.
+                </div>
+                {% endfor %}
+            </div>
+
+            <form id="tokenUploadForm" style="display: none;" enctype="multipart/form-data">
+                <input type="hidden" id="tokenChannelId" name="channel_id">
+                <input type="file" id="tokenFileInput" name="token_file" accept=".json" onchange="submitTokenUpload()">
+            </form>
+
+            <script>
+                function showTokenUpload(channelId) {
+                    document.getElementById('tokenChannelId').value = channelId;
+                    document.getElementById('tokenFileInput').click();
+                }
+
+                function submitTokenUpload() {
+                    const fileInput = document.getElementById('tokenFileInput');
+                    if (!fileInput.files.length) return;
+
+                    const formData = new FormData();
+                    formData.append('channel_id', document.getElementById('tokenChannelId').value);
+                    formData.append('token_file', fileInput.files[0]);
+
+                    fetch('/api/youtube/upload_token', {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.ok) {
+                                alert('تمت إضافة الجندي (المفتاح) الاحتياطي بنجاح! 🛡️');
+                                window.location.reload();
+                            } else {
+                                alert('خطأ: ' + (data.error || "تأكد من اختيار ملف token.json صحيح"));
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('حدث خطأ أثناء الرفع');
+                        });
+                }
+            </script>
+        </section>
+
         <!-- TikTok -->
         <section class="card tiktok-card">
             <div class="card-header">
