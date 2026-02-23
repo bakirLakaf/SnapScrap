@@ -112,14 +112,15 @@ with app.app_context():
     try:
         from sqlalchemy import text
         # Attempt to query the newly added V2 columns
-        db.session.execute(text("SELECT stripe_customer_id FROM user LIMIT 1"))
+        db.session.execute(text("SELECT is_admin FROM user LIMIT 1"))
     except Exception:
         db.session.rollback()
         print("Migrating local database: Checking missing columns in User table...")
         columns_to_add = [
             ("subscription_tier", "VARCHAR(50) DEFAULT 'free'"),
             ("stripe_customer_id", "VARCHAR(255)"),
-            ("created_at", "DATETIME")
+            ("created_at", "DATETIME"),
+            ("is_admin", "BOOLEAN DEFAULT 0")
         ]
         for col_name, col_def in columns_to_add:
             try:
@@ -137,6 +138,7 @@ def require_login():
         if request.path.startswith('/api/'):
             return jsonify({"ok": False, "error": "Unauthorized. Please login."}), 401
         return redirect(url_for('login'))
+
 
 ACCOUNTS_KEY = "accounts"
 SCHEDULE_KEY = "schedule"
@@ -490,7 +492,7 @@ from functools import wraps
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.username not in ["bakir", "testadmin"]:
+        if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
             flash("غير مصرح لك بالدخول إلى لوحة التحكم", "danger")
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
@@ -504,7 +506,7 @@ def admin_dashboard():
     channel_count = ConnectedChannel.query.count()
     return render_template("admin.html", users=users, total_channels=channel_count)
 
-@app.route("/admin/user/<int:user_id>/tier", methods=["POST"])
+@app.route("/admin/change_tier/<int:user_id>", methods=["POST"])
 @admin_required
 def admin_change_tier(user_id):
     from webapp.models import User
@@ -513,17 +515,21 @@ def admin_change_tier(user_id):
     if new_tier in ["free", "pro", "enterprise"]:
         user.subscription_tier = new_tier
         db.session.commit()
+        flash(f"تم تغيير باقة حساب {user.username} إلى {new_tier}.", "success")
     return redirect(url_for('admin_dashboard'))
 
-@app.route("/admin/user/<int:user_id>/delete", methods=["POST"])
+@app.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @admin_required
 def admin_delete_user(user_id):
     from webapp.models import User, ConnectedChannel
     user = User.query.get_or_404(user_id)
-    if user.username not in ["bakir", "testadmin"]:
+    if not getattr(user, 'is_admin', False):
         ConnectedChannel.query.filter_by(user_id=user.id).delete()
         db.session.delete(user)
         db.session.commit()
+        flash(f"تم حذف حساب {user.username} بنجاح.", "success")
+    else:
+        flash("خطأ: لا يمكنك حذف حساب مدير آخر أو حسابك الشخصي.", "danger")
     return redirect(url_for('admin_dashboard'))
 
 @app.route("/dashboard")

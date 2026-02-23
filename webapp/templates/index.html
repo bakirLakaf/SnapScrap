@@ -60,7 +60,7 @@
             <button type="button" id="downloadSelected" class="btn btn-primary btn-block">
                 تنزيل المحدد
             </button>
-            {% if current_user.username in ['bakir', 'testadmin'] %}
+            {% if getattr(current_user, 'is_admin', False) %}
             <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-block" style="margin-top:10px;">
                 لوحة الإدارة 👑
             </a>

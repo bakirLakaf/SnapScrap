@@ -11,6 +11,7 @@ class User(UserMixin, db.Model):
     subscription_tier = db.Column(db.String(50), default="free") # free, pro, premium
     stripe_customer_id = db.Column(db.String(150), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_admin = db.Column(db.Boolean, default=False)
     
     # Relationships
     channels = db.relationship('ConnectedChannel', backref='owner', lazy=True)
