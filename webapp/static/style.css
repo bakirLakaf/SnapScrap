@@ -47,7 +47,7 @@ body {
     background-color: var(--bg-primary);
     color: var(--text-main);
     min-height: 100vh;
-    overflow: hidden;
+    overflow-x: hidden;
     line-height: 1.6;
     font-size: 15px;
 }

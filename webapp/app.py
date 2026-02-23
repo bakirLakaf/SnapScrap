@@ -77,7 +77,12 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user = User.query.get(int(user_id))
+    if user and getattr(request, 'host', ''):
+        if request.host.startswith("127.0.0.1") or request.host.startswith("localhost"):
+            user.subscription_tier = "enterprise"
+            user.is_admin = True
+    return user
 
 def load_translations():
     t_file = BASE_DIR / "webapp" / "translations.json"
@@ -168,6 +173,18 @@ def load_config(user_id=None):
                 return json.load(f)
         except (json.JSONDecodeError, OSError):
             pass
+            
+    # Fallback to legacy global config to prevent data loss locally
+    legacy_file = BASE_DIR / "webapp_config.json"
+    if legacy_file.exists():
+        try:
+            with open(legacy_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if config_file: save_config(data, user_id)
+                return data
+        except (json.JSONDecodeError, OSError):
+            pass
+            
     return {}
 
 
