@@ -107,19 +107,22 @@
         </script>
         {% endif %}
 
-        <!-- Quick Downloader            <section class="quick-download-section glass-panel" style="margin-bottom: 25px; padding: 25px; border-radius: 15px; border: 1px solid rgba(255,252,0,0.2);">
-                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px; color: var(--snap-yellow);">
-                    <i class="fa-solid fa-bolt"></i> {{ _('dash_quick_download') }}
-                </h3>
-                <div class="download-box" style="display: flex; gap: 10px; margin-top: 15px;">
-                    <input type="text" id="dashboardSingleStoryUrl" placeholder="{{ _('dash_url_placeholder') }}"
-                        style="flex: 1; padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff; font-size: 1rem; outline: none;">
-                    <button onclick="dashboardDownloadSingleStory()" class="btn-primary" style="border-radius: 8px; padding: 0 25px; white-space: nowrap;">
-                        {{ _('download_btn') }} <i class="fa-solid fa-download"></i>
-                    </button>
-                </div>
-                <div id="dashboardDownloadResult" style="margin-top: 10px; font-size: 0.9rem; min-height: 20px;"></div>
-            </section>
+        <!-- Quick Downloader -->
+        <section class="quick-download-section glass-panel"
+            style="margin-bottom: 25px; padding: 25px; border-radius: 15px; border: 1px solid rgba(255,252,0,0.2);">
+            <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px; color: var(--snap-yellow);">
+                <i class="fa-solid fa-bolt"></i> {{ _('dash_quick_download') }}
+            </h3>
+            <div class="download-box" style="display: flex; gap: 10px; margin-top: 15px;">
+                <input type="text" id="dashboardSingleStoryUrl" placeholder="{{ _('dash_url_placeholder') }}"
+                    style="flex: 1; padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff; font-size: 1rem; outline: none;">
+                <button onclick="dashboardDownloadSingleStory()" class="btn-primary"
+                    style="border-radius: 8px; padding: 0 25px; white-space: nowrap;">
+                    {{ _('download_btn') }} <i class="fa-solid fa-download"></i>
+                </button>
+            </div>
+            <div id="dashboardDownloadResult" style="margin-top: 10px; font-size: 0.9rem; min-height: 20px;"></div>
+        </section>
 
         <!-- Add Accounts -->
         <section class="card accounts-card">
