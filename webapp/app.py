@@ -58,8 +58,7 @@ csrf = CSRFProtect(app)
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["1000 per day", "100 per hour"],
-    storage_uri="memory://"
+    default_limits=["200 per day", "50 per hour"]
 )
 
 @app.after_request
@@ -98,7 +97,12 @@ def _(key):
 
 @app.context_processor
 def inject_translations():
-    return dict(_=_, current_lang=get_current_language())
+    from flask_wtf.csrf import generate_csrf
+    lang = session.get('lang', 'ar')
+    curr_trans = translations.get(lang, {})
+    def translate(key):
+        return curr_trans.get(key, key)
+    return dict(_=translate, current_lang=lang, current_translations=curr_trans, csrf_token=generate_csrf)
 
 @app.route("/set_lang/<lang>")
 def set_lang(lang):
@@ -133,7 +137,7 @@ with app.app_context():
 
 @app.before_request
 def require_login():
-    allowed_routes = ['login', 'register', 'static', 'landing', 'billing.stripe_webhook']
+    allowed_routes = ['login', 'register', 'static', 'landing', 'billing.stripe_webhook', 'set_lang']
     if request.endpoint not in allowed_routes and not current_user.is_authenticated:
         if request.path.startswith('/api/'):
             return jsonify({"ok": False, "error": "Unauthorized. Please login."}), 401

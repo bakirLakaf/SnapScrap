@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     section.classList.add('visible');
     card.className = 'status-card ' + type;
     document.getElementById('statusTitle').textContent =
-      type === 'done' ? 'تم بنجاح' : type === 'error' ? 'خطأ' : 'جاري المعالجة...';
+      type === 'done' ? window._T('js_status_success') : type === 'error' ? window._T('js_status_error') : window._T('js_status_processing');
     document.getElementById('statusMessage').textContent = msg || '';
     if (statusTimeout) clearTimeout(statusTimeout);
     if (type === 'done' && autoHide !== false) {
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('newAccountInput').value = '';
     const bulkInput = document.getElementById('newAccounts');
     if (bulkInput) bulkInput.value = '';
-    showStatus('done', `تم إضافة ${username}`);
+    showStatus('done', `${window._T('js_status_added')} ${username}`);
   }
 
   async function removeAccount(username) {
@@ -142,11 +142,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (bulkInput.style.display === 'none') {
         bulkInput.style.display = 'block';
         singleInput.parentElement.style.display = 'none'; // Hide input-row
-        if (addBtn) addBtn.textContent = 'إضافة دفعة';
+        if (addBtn) addBtn.textContent = window._T('dash_add');
       } else {
         bulkInput.style.display = 'none';
         singleInput.parentElement.style.display = 'flex';
-        if (addBtn) addBtn.textContent = 'إضافة';
+        if (addBtn) addBtn.textContent = window._T('dash_add');
       }
     });
   }
@@ -201,13 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadSuggestedAccounts();
     btn.disabled = false;
     btn.classList.remove('loading');
-    showStatus('done', 'تم تحديث الحسابات المقترحة');
+    showStatus('done', window._T('js_status_success'));
   });
 
   document.getElementById('addSelectedSuggested')?.addEventListener('click', async () => {
     const checked = [...document.querySelectorAll('.suggested-check:checked')].map(cb => cb.dataset.username);
     if (!checked.length) {
-      showStatus('error', 'حدّد حسابات لإضافتها');
+      showStatus('error', window._T('js_status_select_add'));
       return;
     }
     const res = await fetch('/api/accounts', {
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = await res.json();
     if (data.ok) {
       renderAccounts(data.accounts);
-      const msg = data.added > 0 ? `تم إضافة ${data.added} حساب${data.added > 1 ? 'ات' : ''}` : 'كل المحدد موجود مسبقاً';
+      const msg = data.added > 0 ? window._T('js_status_added_plural').replace('{0}', data.added) : window._T('js_status_all_exist');
       showStatus('done', msg);
       document.querySelectorAll('.suggested-check:checked').forEach(cb => { cb.checked = false; });
     } else {
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!usernames.length) {
-      showStatus('error', 'أدخل اسم مستخدم');
+      showStatus('error', window._T('js_err_enter_user'));
       return;
     }
 
@@ -274,13 +274,13 @@ document.addEventListener('DOMContentLoaded', () => {
           if (bulkInput) bulkInput.value = '';
           if (document.getElementById('newAccountInput')) document.getElementById('newAccountInput').value = '';
 
-          const msg = data.added > 0 ? `تم إضافة ${data.added} حساب` : '';
-          const skip = data.skipped?.length ? ` (${data.skipped.length} موجود)` : '';
+          const msg = data.added > 0 ? window._T('js_status_added_plural').replace('{0}', data.added) : '';
+          const skip = data.skipped?.length ? ` (x${data.skipped.length})` : '';
           showStatus('done', msg + skip || 'تم');
         }
       }
     } catch (err) {
-      showStatus('error', 'حدث خطأ غير متوقع');
+      showStatus('error', window._T('js_err_unexpected'));
     } finally {
       setLoading(btn, false);
     }
@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('downloadSelected')?.addEventListener('click', async () => {
     const checked = [...document.querySelectorAll('.account-check:checked')].map(cb => cb.dataset.username);
     if (!checked.length) {
-      showStatus('error', 'حدّد حسابات لتنزيلها');
+      showStatus('error', window._T('js_err_select_download'));
       return;
     }
     const btn = document.getElementById('downloadSelected');
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showStatus('error', data.error);
       return;
     }
-    showStatus('running', 'جاري التحميل...');
+    showStatus('running', window._T('js_status_downloading'));
     pollTask(data.task_id, () => {
       setLoading(btn, false);
       refreshMergedFolders();
@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sel = document.getElementById('uploadUsername');
     if (sel) {
       const currentVal = sel.value;
-      const opts = '<option value="">اختر المجلد</option><option value="__manual__">أدخل يدوياً</option>' +
+      const opts =  `<option value="">${window._T('dash_select_folder')}</option><option value="__manual__">${window._T('dash_manual')}</option>`  +
         folders.map(f => `<option value="${escapeHtml(f.username)}" data-date="${escapeHtml(f.date)}">${escapeHtml(f.username)} / ${escapeHtml(f.date)}</option>`).join('');
       sel.innerHTML = opts;
       if (currentVal) sel.value = currentVal;
@@ -334,14 +334,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear folder select
     const clearSel = document.getElementById('clearFolder');
     if (clearSel) {
-      clearSel.innerHTML = '<option value="">اختر المجلد</option>' +
+      clearSel.innerHTML =  `<option value="">${window._T('dash_select_folder')}</option>`  +
         folders.map(f => `<option value="${escapeHtml(f.username)}" data-date="${escapeHtml(f.date)}">${escapeHtml(f.username)} / ${escapeHtml(f.date)}</option>`).join('');
     }
 
     // TikTok folder select
     const tiktokSel = document.getElementById('tiktokFolder');
     if (tiktokSel) {
-      tiktokSel.innerHTML = '<option value="">اختر المجلد</option>' +
+      tiktokSel.innerHTML =  `<option value="">${window._T('dash_select_folder')}</option>`  +
         folders.map(f => `<option value="${escapeHtml(f.username)}" data-date="${escapeHtml(f.date)}">${escapeHtml(f.username)} / ${escapeHtml(f.date)}</option>`).join('');
     }
   }
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // await refreshClearFolders(); // Handled by refreshMergedFolders now
     btn.disabled = false;
     btn.textContent = '↻ مجلدات';
-    showStatus('done', 'تم تحديث قائمة المجلدات');
+    showStatus('done', window._T('js_status_updated_folders'));
   });
 
   // === Schedule + next run ===
@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
     if (next <= now) next.setDate(next.getDate() + 1);
     const opts = { hour: '2-digit', minute: '2-digit', weekday: 'short' };
-    el.textContent = 'التشغيل التالي: ' + next.toLocaleDateString('ar-SA', opts);
+    el.textContent = window._T('js_next_run') + next.toLocaleDateString(navigator.language, opts);
   }
 
   document.getElementById('scheduleEnabled')?.addEventListener('change', updateNextRun);
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showStatus('error', data.error);
       return;
     }
-    showStatus('running', 'جاري التحميل...');
+    showStatus('running', window._T('js_status_downloading'));
     pollTask(data.task_id, () => {
       setLoading(btn, false);
       refreshMergedFolders();
@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // === YouTube channels ===
   function populateChannelSelects(channels) {
-    const opts = '<option value="">اختر القناة</option>' +
+    const opts =  `<option value="">${window._T('dash_select_channel')}</option>`  +
       (channels || []).map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.title)}</option>`).join('');
     const sel1 = document.getElementById('uploadChannel');
     const sel2 = document.getElementById('uploadFileChannel');

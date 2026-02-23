@@ -33,10 +33,10 @@
 
             <div class="sidebar-content">
                 <div class="sidebar-section">
-                    <h3>الحسابات المضافة</h3>
+                    <h3>{{ _('dash_accounts') }}</h3>
                     <div class="accounts-actions-sidebar">
-                        <button type="button" id="selectAll" class="btn-link-sm">الكل</button>
-                        <button type="button" id="deselectAll" class="btn-link-sm">لا أحد</button>
+                        <button type="button" id="selectAll" class="btn-link-sm">{{ _('dash_all') }}</button>
+                        <button type="button" id="deselectAll" class="btn-link-sm">{{ _('dash_none') }}</button>
                     </div>
                     <div class="accounts-list sidebar-list" id="accountsList">
                         {% for a in accounts %}
@@ -48,476 +48,474 @@
                                 title="حذف">×</button>
                         </label>
                         {% endfor %}
-                        <p class="empty-accounts" id="emptyAccounts" style="display:none">لا توجد حسابات</p>
+                        <p class="empty-accounts" id="emptyAccounts" style="display:none">{{ _('dash_empty') }}</p>
                     </div>
                 </div>
 
                 <div class="sidebar-footer">
                     <label class="toggle sidebar-toggle-item">
                         <input type="checkbox" id="batchMergeSidebar">
-                        <span>دمج تلقائي</span>
+                        <span>{{ _('dash_auto_merge') }}</span>
                     </label>
                     <button type="button" id="downloadSelected" class="btn btn-primary btn-block">
-                        تنزيل المحدد
+                        {{ _('dash_download_selected') }}
                     </button>
                     {% if getattr(current_user, 'is_admin', False) %}
                     <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-block"
                         style="margin-top:10px;">
-                        لوحة الإدارة 👑
+                        {{ _('dash_admin_panel') }}
                     </a>
                     {% endif %}
                 </div>
             </div>
-        </aside>
+    </div>
+    </aside>
 
-        <main class="app-content">
-            <header class="mobile-header" style="display:none;">
-                <div class="logo-row">
-                    <h1>SnapScrap</h1>
-                </div>
-            </header>
+    <main class="app-content">
+        <header class="mobile-header" style="display:none;">
+            <div class="logo-row">
+                <h1>SnapScrap</h1>
+            </div>
+        </header>
 
-            <!-- Stripe Upgrade Banner -->
-            {% if current_user.subscription_tier == 'free' %}
-            <div class="upgrade-banner"
-                style="background: linear-gradient(135deg, #8b5cf6, #d946ef); padding: 18px 24px; border-radius: 16px; margin-bottom: 24px; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(217, 70, 239, 0.2);">
-                <div>
-                    <h3 style="margin:0 0 5px 0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
-                        <i class="fa-solid fa-crown" style="color: #fbbf24;"></i> الباقة المجانية
-                    </h3>
-                    <p style="margin:0; font-size:0.9rem; opacity:0.9;">أنت حالياً تستخدم الباقة المجانية بحد أقصى (2)
-                        حسابات. للوصول لعدد أكبر وجدولة أسرع وجيش API، قم بالترقية للـ Pro.</p>
+        <!-- Stripe Upgrade Banner -->
+        {% if current_user.subscription_tier == 'free' %}
+        <div class="upgrade-banner"
+            style="background: linear-gradient(135deg, #8b5cf6, #d946ef); padding: 18px 24px; border-radius: 16px; margin-bottom: 24px; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(217, 70, 239, 0.2);">
+            <div>
+                <h3 style="margin:0 0 5px 0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-crown" style="color: #fbbf24;"></i> {{ _('dash_free_tier') }}
+                </h3>
+                <p style="margin:0; font-size:0.9rem; opacity:0.9;">{{ _('dash_free_limits') }}</p>
+            </div>
+            <button onclick="checkoutStripe('pro')"
+                style="background: white; color: #8b5cf6; border: none; padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 700; font-family: 'Tajawal', sans-serif; transition: transform 0.2s;">
+                {{ _('dash_upgrade_pro') }}
+            </button>
+        </div>
+        <script>
+            function checkoutStripe(tier) {
+                fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tier: tier })
+                }).then(res => res.json()).then(data => {
+                    if (data.checkout_url) window.location.href = data.checkout_url;
+                    else alert(data.error);
+                }).catch(console.error);
+            }
+        </script>
+        {% endif %}
+
+        <!-- Quick Downloader            <section class="quick-download-section glass-panel" style="margin-bottom: 25px; padding: 25px; border-radius: 15px; border: 1px solid rgba(255,252,0,0.2);">
+                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px; color: var(--snap-yellow);">
+                    <i class="fa-solid fa-bolt"></i> {{ _('dash_quick_download') }}
+                </h3>
+                <div class="download-box" style="display: flex; gap: 10px; margin-top: 15px;">
+                    <input type="text" id="dashboardSingleStoryUrl" placeholder="{{ _('dash_url_placeholder') }}"
+                        style="flex: 1; padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff; font-size: 1rem; outline: none;">
+                    <button onclick="dashboardDownloadSingleStory()" class="btn-primary" style="border-radius: 8px; padding: 0 25px; white-space: nowrap;">
+                        {{ _('download_btn') }} <i class="fa-solid fa-download"></i>
+                    </button>
                 </div>
-                <button onclick="checkoutStripe('pro')"
-                    style="background: white; color: #8b5cf6; border: none; padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 700; font-family: 'Tajawal', sans-serif; transition: transform 0.2s;">
-                    ترقية إلى Pro
+                <div id="dashboardDownloadResult" style="margin-top: 10px; font-size: 0.9rem; min-height: 20px;"></div>
+            </section>
+
+        <!-- Add Accounts -->
+        <section class="card accounts-card">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon">➕</span>
+                    <h2>{{ _('dash_add_accounts') }}</h2>
+                </div>
+            </div>
+            <form id="addAccountForm" class="form-add-accounts">
+                <div class="input-row">
+                    <input type="text" id="newAccountInput" placeholder="{{ _('dash_username_placeholder') }}">
+                </div>
+                <textarea id="newAccounts" placeholder="{{ _('dash_bulk_add_placeholder') }}" rows="3"
+                    style="display:none"></textarea>
+
+                <div class="add-actions-row">
+                    <button type="submit" id="submitAddBtn" class="btn btn-secondary">{{ _('dash_add') }}</button>
+                    <button type="button" id="toggleBulkAdd" class="btn-link">{{ _('dash_toggle_bulk_add') }}</button>
+                </div>
+            </form>
+
+            <div class="suggested-section">
+                <div class="suggested-header" id="suggestedHeader" style="cursor: pointer;">
+                    <span id="suggestedToggleIcon">▼</span>
+                    <span>{{ _('dash_suggested_accounts') }}</span>
+                    <button type="button" id="refreshSuggested" class="btn-link btn-refresh"
+                        title="{{ _('dash_refresh') }}" style="margin-right: auto;">↻</button>
+                </div>
+                <div class="suggested-list" id="suggestedList"></div>
+                <button type="button" id="addSelectedSuggested" class="btn btn-secondary btn-sm">{{
+                    _('dash_add_selected') }}
                 </button>
             </div>
-            <script>
-                function checkoutStripe(tier) {
-                    fetch('/api/create-checkout-session', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ tier: tier })
-                    }).then(res => res.json()).then(data => {
-                        if (data.checkout_url) window.location.href = data.checkout_url;
-                        else alert(data.error);
-                    }).catch(console.error);
-                }
-            </script>
-            {% endif %}
+        </section>
 
-            <!-- Quick Downloader -->
-            <section class="card"
-                style="margin-bottom: 24px; background: rgba(0,0,0,0.3); border-color: var(--accent);">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon">⚡</span>
-                        <h2>تنزيل قصة فورياً</h2>
-                    </div>
-                </div>
-                <div class="form input-row" style="margin-top: 15px; display:flex;">
-                    <input type="text" id="quickDownloadUrl" placeholder="أدخل رابط قصة سناب شات (snapchat.com/t/...)"
-                        style="flex:1;">
-                    <button type="button" class="btn btn-primary" id="btnQuickDownload"
-                        style="white-space:nowrap; margin-right: 10px;">
-                        <i class="fa-solid fa-download"></i> تنزيل
-                    </button>
-                </div>
-                <p id="quickDownloadStatus" style="margin-top:10px; font-size: 0.9rem;"></p>
-            </section>
-
-            <!-- Add Accounts -->
-            <section class="card accounts-card">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon">➕</span>
-                        <h2>إضافة حسابات</h2>
-                    </div>
-                </div>
-                <form id="addAccountForm" class="form-add-accounts">
-                    <div class="input-row">
-                        <input type="text" id="newAccountInput" placeholder="أدخل اسم المستخدم (مثال: dary_1256)">
-                    </div>
-                    <textarea id="newAccounts" placeholder="أو أضف حسابات متعددة (كل حساب في سطر)" rows="3"
-                        style="display:none"></textarea>
-
-                    <div class="add-actions-row">
-                        <button type="submit" id="submitAddBtn" class="btn btn-secondary">إضافة</button>
-                        <button type="button" id="toggleBulkAdd" class="btn-link">إضافة جملة / حساب واحد</button>
-                    </div>
-                </form>
-
-                <div class="suggested-section">
-                    <div class="suggested-header" id="suggestedHeader" style="cursor: pointer;">
-                        <span id="suggestedToggleIcon">▼</span>
-                        <span>حسابات مقترحة</span>
-                        <button type="button" id="refreshSuggested" class="btn-link btn-refresh" title="تحديث"
-                            style="margin-right: auto;">↻</button>
-                    </div>
-                    <div class="suggested-list" id="suggestedList"></div>
-                    <button type="button" id="addSelectedSuggested" class="btn btn-secondary btn-sm">إضافة
-                        المحدد</button>
-                </div>
-            </section>
-
-            <!-- Quick Download -->
-            <section class="card download-card">
-                <div class="card-header">
-                    <h2>تنزيل سريع</h2>
-                    <p>دون إضافة للقائمة</p>
-                </div>
-                <form id="downloadForm" class="form">
-                    <div class="input-group">
-                        <input type="text" id="username" placeholder="اسم المستخدم">
-                        <label class="toggle">
-                            <input type="checkbox" id="mergeAfter">
-                            <span>دمج بعد التحميل</span>
-                        </label>
-                    </div>
-                    <button type="submit" class="btn btn-secondary">تنزيل</button>
-                </form>
-            </section>
-
-            <!-- Merge -->
-            <section class="card merge-card">
-                <div class="card-header">
-                    <h2>دمج الفيديوهات</h2>
-                </div>
-                <form id="mergeForm" class="form">
-                    <div class="input-row">
-                        <input type="text" id="mergeUsername" placeholder="اسم المستخدم">
-                        <input type="date" id="mergeDate">
-                    </div>
-                    <div class="merge-mode" style="display:none;">
-                        <label class="radio"><input type="radio" name="mergeMode" value="shorts" checked> Shorts</label>
-                    </div>
-                    <button type="submit" class="btn btn-secondary">دمج</button>
-                </form>
-            </section>
-
-            <!-- Schedule -->
-            <section class="card schedule-card">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon">⏰</span>
-                        <h2>جدولة</h2>
-                    </div>
-                </div>
-                <form id="scheduleForm" class="form">
-                    <label class="toggle big">
-                        <input type="checkbox" id="scheduleEnabled" {% if schedule.enabled %}checked{% endif %}>
-                        <span>تفعيل الجدولة اليومية</span>
-                    </label>
-                    <div class="schedule-time">
-                        <input type="number" id="scheduleHour" min="0" max="23" value="{{ schedule.get('hour', 9) }}">
-                        <span>:</span>
-                        <input type="number" id="scheduleMinute" min="0" max="59"
-                            value="{{ schedule.get('minute', 0) }}">
-                    </div>
-                    <p class="next-run" id="nextRun"></p>
+        <!-- Quick Download -->
+        <section class="card download-card">
+            <div class="card-header">
+                <h2>{{ _('dash_quick_download') }}</h2>
+                <p>{{ _('dash_without_adding_to_list') }}</p>
+            </div>
+            <form id="downloadForm" class="form">
+                <div class="input-group">
+                    <input type="text" id="username" placeholder="{{ _('dash_username') }}">
                     <label class="toggle">
-                        <input type="checkbox" id="scheduleMerge" {% if schedule.merge %}checked{% endif %}>
-                        <span>دمج تلقائي</span>
+                        <input type="checkbox" id="mergeAfter">
+                        <span>{{ _('dash_merge_after_download') }}</span>
                     </label>
-                    <button type="submit" class="btn btn-secondary">حفظ</button>
-                </form>
-            </section>
+                </div>
+                <button type="submit" class="btn btn-secondary">{{ _('dash_download') }}</button>
+            </form>
+        </section>
 
-            <!-- Upload -->
-            <section class="card upload-card highlight">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon icon-yt">▶</span>
-                        <h2>YouTube Upload</h2>
-                    </div>
+        <!-- Merge -->
+        <section class="card merge-card">
+            <div class="card-header">
+                <h2>{{ _('dash_merge_videos') }}</h2>
+            </div>
+            <form id="mergeForm" class="form">
+                <div class="input-row">
+                    <input type="text" id="mergeUsername" placeholder="{{ _('dash_username') }}">
+                    <input type="date" id="mergeDate">
                 </div>
-                <div class="upload-tabs">
-                    <button type="button" class="tab active" data-tab="folder">مجلد</button>
-                    <button type="button" class="tab" data-tab="file">ملف</button>
+                <div class="merge-mode" style="display:none;">
+                    <label class="radio"><input type="radio" name="mergeMode" value="shorts" checked> Shorts</label>
                 </div>
-                <div id="uploadFolder" class="tab-content active">
-                    <div class="refresh-row channels-row">
-                        <button type="button" id="refreshMerged" class="btn-link btn-refresh">↻ مجلدات</button>
-                        <span>|</span>
-                        <button type="button" id="refreshChannels" class="btn-link btn-refresh">↻ قنوات</button>
-                        <a href="/youtube/connect" id="addChannel" class="btn-link">+ قناة</a>
-                    </div>
-                    <div class="channel-select-row">
-                        <select id="uploadChannel">
-                            <option value="">اختر القناة</option>
-                        </select>
-                    </div>
-                    <p class="youtube-channels" id="youtubeChannels"></p>
-                    <form id="uploadForm" class="form">
-                        <div class="input-row">
-                            <select id="uploadUsername">
-                                <option value="">اختر المجلد</option>
-                                <option value="__manual__">يدوي</option>
-                                {% for f in merged_folders %}
-                                <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date
-                                    }}</option>
-                                {% endfor %}
-                            </select>
-                            <div id="manualUpload" class="manual-row" style="display:none">
-                                <input type="text" id="uploadUsernameManual" placeholder="User">
-                                <input type="text" id="uploadDateManual" placeholder="Date">
-                            </div>
-                            <input type="hidden" id="uploadDate">
-                            <select id="uploadPrivacy">
-                                <option value="private">خاص</option>
-                                <option value="unlisted">غير مدرج</option>
-                                <option value="public">عام</option>
-                            </select>
-                            <select id="uploadType" style="display:none;">
-                                <option value="shorts" selected>Shorts</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-accent">رفع المحدد</button>
-                    </form>
-                </div>
-                <div id="uploadFile" class="tab-content">
-                    <form id="uploadFileForm" class="form">
-                        <div class="file-drop" id="fileDrop">
-                            <input type="file" id="videoFile" accept="video/*" hidden>
-                            <p class="file-drop-text">اسحب ملف هنا</p>
-                            <p class="file-selected" id="fileSelected" style="display:none"></p>
-                        </div>
-                        <input type="text" id="uploadTitle" placeholder="العنوان">
-                        <select id="uploadFileChannel">
-                            <option value="">اختر القناة</option>
-                        </select>
-                        <select id="uploadFilePrivacy">
-                            <option value="private">خاص</option>
-                            <option value="unlisted">غير مدرج</option>
-                            <option value="public">عام</option>
-                        </select>
-                        <button type="submit" class="btn btn-accent">رفع YouTube</button>
-                    </form>
-                </div>
-            </section>
+                <button type="submit" class="btn btn-secondary">{{ _('dash_merge') }}</button>
+            </form>
+        </section>
 
-            <!-- YouTube Bulk Upload Card -->
-            <section class="card bulk-card highlight">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon icon-yt">▶</span>
-                        <h2>رفع الكل (Bulk Upload)</h2>
-                    </div>
-                    <p>رفع جميع المجلدات الجاهزة وتوزيعها على القنوات</p>
+        <!-- Schedule -->
+        <section class="card schedule-card">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon">⏰</span>
+                    <h2>{{ _('dash_schedule') }}</h2>
                 </div>
-                <div class="form">
+            </div>
+            <form id="scheduleForm" class="form">
+                <label class="toggle big">
+                    <input type="checkbox" id="scheduleEnabled" {% if schedule.enabled %}checked{% endif %}>
+                    <span>{{ _('dash_enable_daily_schedule') }}</span>
+                </label>
+                <div class="schedule-time">
+                    <input type="number" id="scheduleHour" min="0" max="23" value="{{ schedule.get('hour', 9) }}">
+                    <span>:</span>
+                    <input type="number" id="scheduleMinute" min="0" max="59" value="{{ schedule.get('minute', 0) }}">
+                </div>
+                <p class="next-run" id="nextRun"></p>
+                <label class="toggle">
+                    <input type="checkbox" id="scheduleMerge" {% if schedule.merge %}checked{% endif %}>
+                    <span>{{ _('dash_auto_merge') }}</span>
+                </label>
+                <button type="submit" class="btn btn-secondary">{{ _('dash_save') }}</button>
+            </form>
+        </section>
+
+        <!-- Upload -->
+        <section class="card upload-card highlight">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon icon-yt">▶</span>
+                    <h2>YouTube Upload</h2>
+                </div>
+            </div>
+            <div class="upload-tabs">
+                <button type="button" class="tab active" data-tab="folder">{{ _('dash_folder') }}</button>
+                <button type="button" class="tab" data-tab="file">{{ _('dash_file') }}</button>
+            </div>
+            <div id="uploadFolder" class="tab-content active">
+                <div class="refresh-row channels-row">
+                    <button type="button" id="refreshMerged" class="btn-link btn-refresh">↻ {{ _('dash_folders')
+                        }}</button>
+                    <span>|</span>
+                    <button type="button" id="refreshChannels" class="btn-link btn-refresh">↻ {{ _('dash_channels')
+                        }}</button>
+                    <a href="/youtube/connect" id="addChannel" class="btn-link">+ {{ _('dash_channel') }}</a>
+                </div>
+                <div class="channel-select-row">
+                    <select id="uploadChannel">
+                        <option value="">{{ _('dash_select_channel') }}</option>
+                    </select>
+                </div>
+                <p class="youtube-channels" id="youtubeChannels"></p>
+                <form id="uploadForm" class="form">
                     <div class="input-row">
-                        <select id="bulkUploadChannel">
-                            <option value="">اختر القناة (مهم: اختر Content Creators Stories)</option>
+                        <select id="uploadUsername">
+                            <option value="">{{ _('dash_select_folder') }}</option>
+                            <option value="__manual__">{{ _('dash_manual') }}</option>
+                            {% for f in merged_folders %}
+                            <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date
+                                }}</option>
+                            {% endfor %}
+                        </select>
+                        <div id="manualUpload" class="manual-row" style="display:none">
+                            <input type="text" id="uploadUsernameManual" placeholder="{{ _('dash_user') }}">
+                            <input type="text" id="uploadDateManual" placeholder="{{ _('dash_date') }}">
+                        </div>
+                        <input type="hidden" id="uploadDate">
+                        <select id="uploadPrivacy">
+                            <option value="private">{{ _('dash_private') }}</option>
+                            <option value="unlisted">{{ _('dash_unlisted') }}</option>
+                            <option value="public">{{ _('dash_public') }}</option>
+                        </select>
+                        <select id="uploadType" style="display:none;">
+                            <option value="shorts" selected>Shorts</option>
                         </select>
                     </div>
-                    <button type="button" id="uploadAll" class="btn btn-primary"
-                        style="background-color: var(--yt-red); color: white;">بدء الرفع الشامل</button>
-                </div>
-            </section>
-
-            <!-- Army of APIs Manager -->
-            <section class="card army-card">
-                <div class="card-header" style="flex-direction: column; align-items: flex-start; gap: 10px;">
-                    <div class="header-icons">
-                        <span class="icon" style="color: #fffc00;">🛡️</span>
-                        <h2>إدارة جيش المفاتيح</h2>
-                    </div>
-                    <p style="font-size: 0.85rem; color: #a0a0b0; margin:0;">
-                        لن تتوقف الرفوعات أبداً. أضف مفاتيح احتياطية (tokens) لكل قناة، وسيقوم النظام بتدويرها تلقائياً
-                        عند
-                        نفاذ الحصة (Quota 403).
-                    </p>
-                    <button type="button" class="btn btn-secondary btn-sm"
-                        onclick="document.getElementById('secretFileInput').click()" style="margin-top: 10px;">
-                        <i class="fa-solid fa-upload"></i> رفع ملف Client Secret جديد (Google Project)
-                    </button>
-                    <form id="secretUploadForm" style="display: none;" enctype="multipart/form-data">
-                        <input type="file" id="secretFileInput" name="secret_file" accept=".json"
-                            onchange="submitSecretUpload()">
-                    </form>
-                    <script>
-                        function submitSecretUpload() {
-                            const fileInput = document.getElementById('secretFileInput');
-                            if (!fileInput.files.length) return;
-
-                            const formData = new FormData();
-                            formData.append('secret_file', fileInput.files[0]);
-
-                            fetch('/api/youtube/upload_client_secret', {
-                                method: 'POST',
-                                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
-                                body: formData
-                            })
-                                .then(res => res.json())
-                                .then(data => {
-                                    if (data.ok) {
-                                        alert('تم رفع مشروع جوجل (Client Secret) بنجاح! يمكن للنظام استخدامه في الرفوعات القادمة.');
-                                    } else {
-                                        alert('خطأ: ' + (data.error || "تأكد من اختيار ملف صحیح"));
-                                    }
-                                    fileInput.value = "";
-                                })
-                                .catch(err => {
-                                    console.error(err);
-                                    alert('حدث خطأ أثناء الرفع');
-                                });
-                        }
-                    </script>
-                </div>
-
-                <div class="army-list" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
-                    {% for channel in youtube_channels %}
-                    <div class="army-item"
-                        style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.5rem; color: #ff0000;"><i class="fa-brands fa-youtube"></i></span>
-                            <div>
-                                <strong style="display: block; font-size: 1rem;">{{ channel.title }}</strong>
-                                <small style="color: #a0a0b0;">{{ channel.id }}</small>
-                            </div>
-                        </div>
-
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <div class="token-badge"
-                                style="background: rgba(0, 230, 118, 0.1); color: #00E676; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(0, 230, 118, 0.3);">
-                                <i class="fa-solid fa-key"></i> {{ channel.token_count }} مفاتيح احتياطية
-                            </div>
-                            <button type="button" class="btn btn-secondary btn-sm"
-                                onclick="showTokenUpload('{{ channel.id }}')"
-                                style="padding: 6px 12px; font-size: 0.85rem; border-radius: 8px;">
-                                + إضافة مفتاح
-                            </button>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div style="text-align: center; color: #a0a0b0; padding: 20px;">
-                        لا توجد قنوات يوتيوب مرتبطة بعد. قم بإضافة قناة من قائمة الرفع.
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <form id="tokenUploadForm" style="display: none;" enctype="multipart/form-data">
-                    <input type="hidden" id="tokenChannelId" name="channel_id">
-                    <input type="file" id="tokenFileInput" name="token_file" accept=".json"
-                        onchange="submitTokenUpload()">
+                    <button type="submit" class="btn btn-accent">{{ _('dash_upload_selected') }}</button>
                 </form>
+            </div>
+            <div id="uploadFile" class="tab-content">
+                <form id="uploadFileForm" class="form">
+                    <div class="file-drop" id="fileDrop">
+                        <input type="file" id="videoFile" accept="video/*" hidden>
+                        <p class="file-drop-text">{{ _('dash_drag_file_here') }}</p>
+                        <p class="file-selected" id="fileSelected" style="display:none"></p>
+                    </div>
+                    <input type="text" id="uploadTitle" placeholder="{{ _('dash_title') }}">
+                    <select id="uploadFileChannel">
+                        <option value="">{{ _('dash_select_channel') }}</option>
+                    </select>
+                    <select id="uploadFilePrivacy">
+                        <option value="private">{{ _('dash_private') }}</option>
+                        <option value="unlisted">{{ _('dash_unlisted') }}</option>
+                        <option value="public">{{ _('dash_public') }}</option>
+                    </select>
+                    <button type="submit" class="btn btn-accent">{{ _('dash_upload_youtube') }}</button>
+                </form>
+            </div>
+        </section>
 
+        <!-- YouTube Bulk Upload Card -->
+        <section class="card bulk-card highlight">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon icon-yt">▶</span>
+                    <h2>{{ _('dash_bulk_upload') }}</h2>
+                </div>
+                <p>{{ _('dash_bulk_upload_desc') }}</p>
+            </div>
+            <div class="form">
+                <div class="input-row">
+                    <select id="bulkUploadChannel">
+                        <option value="">{{ _('dash_select_channel_important') }}</option>
+                    </select>
+                </div>
+                <button type="button" id="uploadAll" class="btn btn-primary"
+                    style="background-color: var(--yt-red); color: white;">{{ _('dash_start_bulk_upload') }}</button>
+            </div>
+        </section>
+
+        <!-- Army of APIs Manager -->
+        <section class="card army-card">
+            <div class="card-header" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                <div class="header-icons">
+                    <span class="icon" style="color: #fffc00;">🛡️</span>
+                    <h2>{{ _('dash_manage_api_army') }}</h2>
+                </div>
+                <p style="font-size: 0.85rem; color: #a0a0b0; margin:0;">
+                    {{ _('dash_api_army_desc') }}
+                </p>
+                <button type="button" class="btn btn-secondary btn-sm"
+                    onclick="document.getElementById('secretFileInput').click()" style="margin-top: 10px;">
+                    <i class="fa-solid fa-upload"></i> {{ _('dash_upload_client_secret') }}
+                </button>
+                <form id="secretUploadForm" style="display: none;" enctype="multipart/form-data">
+                    <input type="file" id="secretFileInput" name="secret_file" accept=".json"
+                        onchange="submitSecretUpload()">
+                </form>
                 <script>
-                    function showTokenUpload(channelId) {
-                        document.getElementById('tokenChannelId').value = channelId;
-                        document.getElementById('tokenFileInput').click();
-                    }
-
-                    function submitTokenUpload() {
-                        const fileInput = document.getElementById('tokenFileInput');
+                    function submitSecretUpload() {
+                        const fileInput = document.getElementById('secretFileInput');
                         if (!fileInput.files.length) return;
 
                         const formData = new FormData();
-                        formData.append('channel_id', document.getElementById('tokenChannelId').value);
-                        formData.append('token_file', fileInput.files[0]);
+                        formData.append('secret_file', fileInput.files[0]);
 
-                        fetch('/api/youtube/upload_token', {
+                        fetch('/api/youtube/upload_client_secret', {
                             method: 'POST',
+                            headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
                             body: formData
                         })
                             .then(res => res.json())
                             .then(data => {
                                 if (data.ok) {
-                                    alert('تمت إضافة الجندي (المفتاح) الاحتياطي بنجاح! 🛡️');
-                                    window.location.reload();
+                                    alert("{{ _('dash_client_secret_upload_success') }}");
                                 } else {
-                                    alert('خطأ: ' + (data.error || "تأكد من اختيار ملف token.json صحيح"));
+                                    alert("{{ _('dash_error') }}: " + (data.error || "{{ _('dash_ensure_correct_file') }}"));
                                 }
+                                fileInput.value = "";
                             })
                             .catch(err => {
                                 console.error(err);
-                                alert('حدث خطأ أثناء الرفع');
+                                alert("{{ _('dash_upload_error_occurred') }}");
                             });
                     }
                 </script>
-            </section>
+            </div>
 
-            <!-- TikTok -->
-            <section class="card tiktok-card">
-                <div class="card-header">
-                    <div class="header-icons">
-                        <span class="icon">📱</span>
-                        <h2>TikTok Upload</h2>
-                    </div>
-                </div>
-                <div class="tiktok-content">
-                    <p class="tiktok-info">مساعد الرفع اليدوي (Manual Bridge)</p>
-                    <div class="form">
-                        <div class="input-row">
-                            <select id="tiktokFolder">
-                                <option value="">اختر المجلد</option>
-                                {% for f in merged_folders %}
-                                <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date
-                                    }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="manual-bridge-actions">
-                            <div class="action-step">
-                                <span class="step-num">1</span>
-                                <button type="button" id="copyCaptionBtn" class="btn btn-secondary btn-sm btn-block">نسخ
-                                    العنوان</button>
-                            </div>
-                            <div class="action-step">
-                                <span class="step-num">2</span>
-                                <button type="button" id="openFolderBtn" class="btn btn-secondary btn-sm btn-block">فتح
-                                    المجلد</button>
-                            </div>
-                            <div class="action-step">
-                                <span class="step-num">3</span>
-                                <button type="button" class="btn btn-accent btn-sm btn-block"
-                                    onclick="window.open('https://www.tiktok.com/upload', '_blank')">فتح TikTok</button>
-                            </div>
+            <div class="army-list" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                {% for channel in youtube_channels %}
+                <div class="army-item"
+                    style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.5rem; color: #ff0000;"><i class="fa-brands fa-youtube"></i></span>
+                        <div>
+                            <strong style="display: block; font-size: 1rem;">{{ channel.title }}</strong>
+                            <small style="color: #a0a0b0;">{{ channel.id }}</small>
                         </div>
                     </div>
-                </div>
-            </section>
 
-            <!-- Clear batch -->
-            <section class="card clear-card">
-                <div class="card-header">
-                    <h2>تنظيف</h2>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="token-badge"
+                            style="background: rgba(0, 230, 118, 0.1); color: #00E676; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(0, 230, 118, 0.3);">
+                            <i class="fa-solid fa-key"></i> {{ channel.token_count }} {{ _('dash_backup_keys') }}
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm"
+                            onclick="showTokenUpload('{{ channel.id }}')"
+                            style="padding: 6px 12px; font-size: 0.85rem; border-radius: 8px;">
+                            + {{ _('dash_add_key') }}
+                        </button>
+                    </div>
                 </div>
+                {% else %}
+                <div style="text-align: center; color: #a0a0b0; padding: 20px;">
+                    {{ _('dash_no_youtube_channels_linked') }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <form id="tokenUploadForm" style="display: none;" enctype="multipart/form-data">
+                <input type="hidden" id="tokenChannelId" name="channel_id">
+                <input type="file" id="tokenFileInput" name="token_file" accept=".json" onchange="submitTokenUpload()">
+            </form>
+
+            <script>
+                function showTokenUpload(channelId) {
+                    document.getElementById('tokenChannelId').value = channelId;
+                    document.getElementById('tokenFileInput').click();
+                }
+
+                function submitTokenUpload() {
+                    const fileInput = document.getElementById('tokenFileInput');
+                    if (!fileInput.files.length) return;
+
+                    const formData = new FormData();
+                    formData.append('channel_id', document.getElementById('tokenChannelId').value);
+                    formData.append('token_file', fileInput.files[0]);
+
+                    fetch('/api/youtube/upload_token', {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.ok) {
+                                alert("{{ _('dash_backup_key_added_success') }}");
+                                window.location.reload();
+                            } else {
+                                alert("{{ _('dash_error') }}: " + (data.error || "{{ _('dash_ensure_correct_token_file') }}"));
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert("{{ _('dash_upload_error_occurred') }}");
+                        });
+                }
+            </script>
+        </section>
+
+        <!-- TikTok -->
+        <section class="card tiktok-card">
+            <div class="card-header">
+                <div class="header-icons">
+                    <span class="icon">📱</span>
+                    <h2>TikTok Upload</h2>
+                </div>
+            </div>
+            <div class="tiktok-content">
+                <p class="tiktok-info">{{ _('dash_manual_bridge_helper') }}</p>
                 <div class="form">
                     <div class="input-row">
-                        <select id="clearFolder">
-                            <option value="">اختر المجلد</option>
+                        <select id="tiktokFolder">
+                            <option value="">{{ _('dash_select_folder') }}</option>
                             {% for f in merged_folders %}
-                            <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date }}
-                            </option>
+                            <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date
+                                }}</option>
                             {% endfor %}
                         </select>
-                        <button type="button" id="clearBatchBtn" class="btn btn-secondary">حذف</button>
+                    </div>
+
+                    <div class="manual-bridge-actions">
+                        <div class="action-step">
+                            <span class="step-num">1</span>
+                            <button type="button" id="copyCaptionBtn" class="btn btn-secondary btn-sm btn-block">{{
+                                _('dash_copy_caption') }}
+                            </button>
+                        </div>
+                        <div class="action-step">
+                            <span class="step-num">2</span>
+                            <button type="button" id="openFolderBtn" class="btn btn-secondary btn-sm btn-block">{{
+                                _('dash_open_folder') }}
+                            </button>
+                        </div>
+                        <div class="action-step">
+                            <span class="step-num">3</span>
+                            <button type="button" class="btn btn-accent btn-sm btn-block"
+                                onclick="window.open('https://www.tiktok.com/upload', '_blank')">{{
+                                _('dash_open_tiktok') }}</button>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <section class="status-section" id="statusSection">
-                <div class="status-card" id="statusCard">
-                    <div class="status-icon" id="statusIcon">◇</div>
-                    <div class="status-text">
-                        <strong id="statusTitle"></strong>
-                        <span id="statusMessage"></span>
-                    </div>
+        <!-- Clear batch -->
+        <section class="card clear-card">
+            <div class="card-header">
+                <h2>{{ _('dash_clean_up') }}</h2>
+            </div>
+            <div class="form">
+                <div class="input-row">
+                    <select id="clearFolder">
+                        <option value="">{{ _('dash_select_folder') }}</option>
+                        {% for f in merged_folders %}
+                        <option value="{{ f.username }}" data-date="{{ f.date }}">{{ f.username }} / {{ f.date }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" id="clearBatchBtn" class="btn btn-secondary">{{ _('dash_delete') }}</button>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <footer>
-                <p class="copyright">SnapScrap © 2026</p>
-            </footer>
-        </main>
+        <section class="status-section" id="statusSection">
+            <div class="status-card" id="statusCard">
+                <div class="status-icon" id="statusIcon">◇</div>
+                <div class="status-text">
+                    <strong id="statusTitle"></strong>
+                    <span id="statusMessage"></span>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p class="copyright">SnapScrap © 2026</p>
+        </footer>
+    </main>
     </div>
 
     <script>
         window.INIT_ACCOUNTS = {{ accounts | tojson }};
+        window.TRANS = {{ current_translations | tojson | safe }};
+        window._T = function (key) { return window.TRANS[key] || key; };
     </script>
     <script src="/static/app.js"></script>
 </body>
